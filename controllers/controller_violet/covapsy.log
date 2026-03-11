@@ -1,0 +1,385 @@
+12:24:36 INFO __main__: Connexion au lidar...
+12:24:36 ERROR __main__: Erreur critique : Failed to connect to the sensor due to: [Errno 2] could not open port /dev/ttyUSB0: [Errno 2] No such file or directory: '/dev/ttyUSB0'
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/serial/serialposix.py", line 322, in open
+    self.fd = os.open(self.portstr, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+              ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/dev/ttyUSB0'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.13/dist-packages/rplidar.py", line 143, in connect
+    self._serial = serial.Serial(
+                   ~~~~~~~~~~~~~^
+        self.port, self.baudrate,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+        parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        timeout=self.timeout)
+        ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/serial/serialutil.py", line 244, in __init__
+    self.open()
+    ~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/serial/serialposix.py", line 325, in open
+    raise SerialException(msg.errno, "could not open port {}: {}".format(self._port, msg))
+serial.serialutil.SerialException: [Errno 2] could not open port /dev/ttyUSB0: [Errno 2] No such file or directory: '/dev/ttyUSB0'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/covapsypps1/Documents/CoVAPSy_aya/controllers/controller_violet/voiture_reelle.py", line 111, in main
+    lidar.connecter()
+    ~~~~~~~~~~~~~~~^^
+  File "/home/covapsypps1/Documents/CoVAPSy_aya/controllers/controller_violet/robot_base.py", line 124, in connecter
+    self._lidar = RPLidar(config.LIDAR_PORT, baudrate=config.LIDAR_BAUDRATE)
+                  ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/rplidar.py", line 135, in __init__
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/dist-packages/rplidar.py", line 148, in connect
+    raise RPLidarException('Failed to connect to the sensor '
+                           'due to: %s' % err)
+rplidar.RPLidarException: Failed to connect to the sensor due to: [Errno 2] could not open port /dev/ttyUSB0: [Errno 2] No such file or directory: '/dev/ttyUSB0'
+12:25:01 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+12:25:01 INFO __main__: Arrêt propre en cours...
+12:37:13 INFO __main__: Connexion au lidar...
+12:37:13 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+12:37:13 INFO rplidar: Starting motor
+12:37:14 INFO rplidar: Starting motor
+12:37:14 INFO robot_base: Thread lidar démarré
+12:37:14 INFO rplidar: Asking for health
+12:37:14 INFO rplidar: starting scan process in express mode
+12:38:04 INFO __main__: Mode auto active par l'utilisateur
+12:38:15 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+12:38:15 INFO __main__: Arrêt propre en cours...
+12:39:34 INFO __main__: Connexion au lidar...
+12:39:34 INFO robot_base: Lidar connecté : Data in buffer, you can't have info ! Run clean_input() to emptied the buffer.
+12:39:34 INFO rplidar: Starting motor
+12:39:35 INFO rplidar: Starting motor
+12:39:35 INFO robot_base: Thread lidar démarré
+12:39:35 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:35 INFO rplidar: Starting motor
+12:39:35 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:35 INFO rplidar: Starting motor
+12:39:35 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:35 INFO rplidar: Starting motor
+12:39:35 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:35 INFO rplidar: Starting motor
+12:39:35 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:35 INFO rplidar: Starting motor
+12:39:35 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:35 INFO rplidar: Starting motor
+12:39:35 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:35 INFO rplidar: Starting motor
+12:39:35 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:36 INFO rplidar: Starting motor
+12:39:36 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:36 INFO rplidar: Starting motor
+12:39:36 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:36 INFO rplidar: Starting motor
+12:39:36 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:36 INFO rplidar: Starting motor
+12:39:36 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:36 INFO rplidar: Starting motor
+12:39:36 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:36 INFO rplidar: Starting motor
+12:39:36 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:36 INFO rplidar: Starting motor
+12:39:36 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:36 INFO rplidar: Starting motor
+12:39:36 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:36 INFO rplidar: Starting motor
+12:39:36 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:36 INFO rplidar: Starting motor
+12:39:36 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:37 INFO rplidar: Starting motor
+12:39:37 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:37 INFO rplidar: Starting motor
+12:39:37 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:37 INFO rplidar: Starting motor
+12:39:37 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:37 INFO rplidar: Starting motor
+12:39:37 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:37 INFO rplidar: Starting motor
+12:39:37 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:37 INFO rplidar: Starting motor
+12:39:37 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:37 INFO rplidar: Starting motor
+12:39:37 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:37 INFO rplidar: Starting motor
+12:39:37 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:37 INFO rplidar: Starting motor
+12:39:37 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:37 INFO rplidar: Starting motor
+12:39:37 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:38 INFO rplidar: Starting motor
+12:39:38 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:38 INFO rplidar: Starting motor
+12:39:38 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:38 INFO rplidar: Starting motor
+12:39:38 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:38 INFO rplidar: Starting motor
+12:39:38 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:38 INFO rplidar: Starting motor
+12:39:38 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:38 INFO rplidar: Starting motor
+12:39:38 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:38 INFO rplidar: Starting motor
+12:39:38 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:38 INFO rplidar: Starting motor
+12:39:38 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:38 INFO rplidar: Starting motor
+12:39:38 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:39 INFO rplidar: Starting motor
+12:39:39 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:39 INFO rplidar: Starting motor
+12:39:39 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:39 INFO rplidar: Starting motor
+12:39:39 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:39 INFO rplidar: Starting motor
+12:39:39 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:39 INFO rplidar: Starting motor
+12:39:39 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:39 INFO rplidar: Starting motor
+12:39:39 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:39 INFO rplidar: Starting motor
+12:39:39 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:39 INFO rplidar: Starting motor
+12:39:39 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:39 INFO rplidar: Starting motor
+12:39:39 INFO __main__: Mode auto active par l'utilisateur
+12:39:39 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:39 INFO rplidar: Starting motor
+12:39:39 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:40 INFO rplidar: Starting motor
+12:39:40 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:40 INFO rplidar: Starting motor
+12:39:40 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:40 INFO rplidar: Starting motor
+12:39:40 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:40 INFO rplidar: Starting motor
+12:39:40 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:40 INFO rplidar: Starting motor
+12:39:40 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:40 INFO rplidar: Starting motor
+12:39:40 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:40 INFO rplidar: Starting motor
+12:39:40 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:40 INFO rplidar: Starting motor
+12:39:40 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:40 INFO rplidar: Starting motor
+12:39:40 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:40 INFO rplidar: Starting motor
+12:39:40 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:41 INFO rplidar: Starting motor
+12:39:41 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:41 INFO rplidar: Starting motor
+12:39:41 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:41 INFO rplidar: Starting motor
+12:39:41 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:41 INFO rplidar: Starting motor
+12:39:41 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:41 INFO rplidar: Starting motor
+12:39:41 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:41 INFO rplidar: Starting motor
+12:39:41 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:41 INFO rplidar: Starting motor
+12:39:41 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:41 INFO rplidar: Starting motor
+12:39:41 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:41 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+12:39:41 INFO __main__: Arrêt propre en cours...
+12:39:41 INFO rplidar: Starting motor
+12:39:41 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:41 INFO rplidar: Starting motor
+12:39:41 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:42 INFO rplidar: Starting motor
+12:39:42 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:42 INFO rplidar: Starting motor
+12:39:42 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:42 INFO rplidar: Starting motor
+12:39:42 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:42 INFO robot_base: Actionneurs arrêtés
+12:39:45 INFO __main__: Connexion au lidar...
+12:39:45 INFO robot_base: Lidar connecté : Data in buffer, you can't have info ! Run clean_input() to emptied the buffer.
+12:39:45 INFO rplidar: Starting motor
+12:39:46 INFO rplidar: Starting motor
+12:39:46 INFO robot_base: Thread lidar démarré
+12:39:46 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:46 INFO rplidar: Starting motor
+12:39:46 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:46 INFO rplidar: Starting motor
+12:39:46 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:46 INFO rplidar: Starting motor
+12:39:46 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:46 INFO rplidar: Starting motor
+12:39:46 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:46 INFO rplidar: Starting motor
+12:39:46 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:47 INFO rplidar: Starting motor
+12:39:47 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:47 INFO rplidar: Starting motor
+12:39:47 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:47 INFO rplidar: Starting motor
+12:39:47 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:47 INFO rplidar: Starting motor
+12:39:47 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:47 INFO rplidar: Starting motor
+12:39:47 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:47 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+12:39:47 INFO __main__: Arrêt propre en cours...
+12:39:47 INFO rplidar: Starting motor
+12:39:47 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:47 INFO rplidar: Starting motor
+12:39:47 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:47 INFO rplidar: Starting motor
+12:39:47 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:39:47 INFO rplidar: Starting motor
+12:39:47 WARNING robot_base: Erreur acquisition lidar : too many values to unpack (expected 2)
+12:40:22 INFO __main__: Connexion au lidar...
+12:40:22 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+12:40:22 INFO rplidar: Starting motor
+12:40:23 INFO rplidar: Starting motor
+12:40:23 INFO robot_base: Thread lidar démarré
+12:40:23 INFO rplidar: Asking for health
+12:40:23 INFO rplidar: starting scan process in express mode
+12:40:29 INFO __main__: Mode auto active par l'utilisateur
+12:40:39 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+12:40:39 INFO __main__: Arrêt propre en cours...
+13:29:21 INFO robot_base: Actionneurs démarrés
+13:29:21 INFO __main__: Actionneurs initialises et PWM actives
+13:29:21 INFO __main__: Connexion au lidar...
+13:29:21 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+13:29:21 INFO rplidar: Starting motor
+13:29:22 INFO rplidar: Starting motor
+13:29:22 INFO robot_base: Thread lidar démarré
+13:29:22 INFO rplidar: Asking for health
+13:29:22 INFO rplidar: starting scan process in express mode
+13:29:28 INFO __main__: Mode auto active par l'utilisateur
+13:29:30 INFO __main__: Mode auto desactive par l'utilisateur
+13:29:30 INFO robot_base: Actionneurs arrêtés
+13:31:00 INFO __main__: Mode auto active par l'utilisateur
+13:31:15 INFO __main__: Mode auto desactive par l'utilisateur
+13:31:15 INFO robot_base: Actionneurs arrêtés
+13:31:16 INFO __main__: Quitter le programme.
+13:31:16 INFO __main__: Arrêt propre en cours...
+13:31:17 INFO robot_base: Actionneurs arrêtés
+13:31:17 INFO rplidar: Stoping motor
+13:31:17 INFO rplidar: Stopping scanning
+13:31:18 INFO robot_base: Lidar arrêté
+13:31:18 INFO __main__: Programme terminé.
+13:31:20 INFO robot_base: Actionneurs démarrés
+13:31:20 INFO __main__: Actionneurs initialises et PWM actives
+13:31:20 INFO __main__: Connexion au lidar...
+13:31:20 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+13:31:20 INFO rplidar: Starting motor
+13:31:21 INFO rplidar: Starting motor
+13:31:21 INFO robot_base: Thread lidar démarré
+13:31:21 INFO rplidar: Asking for health
+13:31:21 INFO rplidar: starting scan process in express mode
+13:31:25 INFO __main__: Mode auto active par l'utilisateur
+13:31:51 INFO __main__: Mode auto desactive par l'utilisateur
+13:31:51 INFO robot_base: Actionneurs arrêtés
+13:32:49 INFO __main__: Quitter le programme.
+13:32:49 INFO __main__: Arrêt propre en cours...
+13:32:49 INFO robot_base: Actionneurs arrêtés
+13:32:49 INFO rplidar: Stoping motor
+13:32:49 INFO rplidar: Stopping scanning
+13:32:50 INFO robot_base: Lidar arrêté
+13:32:50 INFO __main__: Programme terminé.
+13:33:52 INFO __main__: Actionneurs initialises et PWM actives
+13:33:52 INFO __main__: Connexion au lidar...
+13:33:52 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+13:33:52 INFO rplidar: Starting motor
+13:33:53 INFO rplidar: Starting motor
+13:33:53 INFO robot_base: Thread lidar démarré
+13:33:53 INFO rplidar: Asking for health
+13:33:53 INFO rplidar: starting scan process in express mode
+13:33:53 INFO __main__: Mode auto active par l'utilisateur
+13:33:53 INFO robot_base: Actionneurs démarrés
+13:34:00 INFO __main__: Quitter le programme.
+13:34:00 INFO __main__: Arrêt propre en cours...
+13:34:00 INFO robot_base: Actionneurs arrêtés
+13:34:00 INFO rplidar: Stoping motor
+13:34:00 INFO rplidar: Stopping scanning
+13:34:01 INFO robot_base: Lidar arrêté
+13:34:01 INFO __main__: Programme terminé.
+13:34:03 INFO __main__: Actionneurs initialises et PWM actives
+13:34:03 INFO __main__: Connexion au lidar...
+13:34:03 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+13:34:03 INFO rplidar: Starting motor
+13:34:04 INFO rplidar: Starting motor
+13:34:04 INFO robot_base: Thread lidar démarré
+13:34:04 INFO rplidar: Asking for health
+13:34:04 INFO rplidar: starting scan process in express mode
+13:34:07 INFO __main__: Mode auto active par l'utilisateur
+13:34:07 INFO robot_base: Actionneurs démarrés
+13:34:44 INFO __main__: Mode auto desactive par l'utilisateur
+13:34:44 INFO robot_base: Actionneurs arrêtés
+13:34:53 INFO __main__: Mode auto active par l'utilisateur
+13:34:53 INFO robot_base: Actionneurs démarrés
+13:35:13 INFO __main__: Mode auto desactive par l'utilisateur
+13:35:13 INFO robot_base: Actionneurs arrêtés
+13:36:33 INFO __main__: Mode auto active par l'utilisateur
+13:36:33 INFO robot_base: Actionneurs démarrés
+13:36:41 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+13:36:41 INFO __main__: Arrêt propre en cours...
+13:36:42 INFO robot_base: Actionneurs arrêtés
+13:36:42 INFO rplidar: Stoping motor
+13:36:42 INFO rplidar: Stopping scanning
+13:36:43 INFO robot_base: Lidar arrêté
+13:36:43 INFO __main__: Programme terminé.
+13:43:26 INFO __main__: Actionneurs initialises et PWM actives
+13:43:26 INFO __main__: Connexion au lidar...
+13:43:26 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+13:43:26 INFO rplidar: Starting motor
+13:43:27 INFO rplidar: Starting motor
+13:43:27 INFO robot_base: Thread lidar démarré
+13:43:27 INFO rplidar: Asking for health
+13:43:27 INFO rplidar: starting scan process in express mode
+13:43:34 INFO __main__: Quitter le programme.
+13:43:34 INFO __main__: Arrêt propre en cours...
+13:43:34 INFO robot_base: Actionneurs arrêtés
+13:43:34 INFO rplidar: Stoping motor
+13:43:34 INFO rplidar: Stopping scanning
+13:43:35 INFO robot_base: Lidar arrêté
+13:43:35 INFO __main__: Programme terminé.
+13:43:42 INFO __main__: Actionneurs initialises et PWM actives
+13:43:42 INFO __main__: Connexion au lidar...
+13:43:42 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+13:43:42 INFO rplidar: Starting motor
+13:43:43 INFO rplidar: Starting motor
+13:43:43 INFO robot_base: Thread lidar démarré
+13:43:43 INFO rplidar: Asking for health
+13:43:43 INFO rplidar: starting scan process in express mode
+13:43:46 INFO __main__: Mode auto active par l'utilisateur
+13:43:46 INFO robot_base: Actionneurs démarrés
+13:43:56 INFO __main__: Mode auto desactive par l'utilisateur
+13:43:56 INFO robot_base: Actionneurs arrêtés
+13:43:58 INFO __main__: Quitter le programme.
+13:43:58 INFO __main__: Arrêt propre en cours...
+13:43:58 INFO robot_base: Actionneurs arrêtés
+13:43:58 INFO rplidar: Stoping motor
+13:43:58 INFO rplidar: Stopping scanning
+13:43:59 INFO robot_base: Lidar arrêté
+13:43:59 INFO __main__: Programme terminé.
+13:44:45 INFO __main__: Actionneurs initialises et PWM actives
+13:44:45 INFO __main__: Connexion au lidar...
+13:44:45 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+13:44:45 INFO rplidar: Starting motor
+13:44:46 INFO rplidar: Starting motor
+13:44:46 INFO robot_base: Thread lidar démarré
+13:44:46 INFO rplidar: Asking for health
+13:44:46 INFO rplidar: starting scan process in express mode
+13:44:48 INFO __main__: Mode auto active par l'utilisateur
+13:44:48 INFO robot_base: Actionneurs démarrés
+13:44:53 INFO __main__: Mode auto desactive par l'utilisateur
+13:44:53 INFO robot_base: Actionneurs arrêtés
+13:44:58 INFO __main__: Quitter le programme.
+13:44:58 INFO __main__: Arrêt propre en cours...
+13:44:58 INFO robot_base: Actionneurs arrêtés
+13:44:58 INFO rplidar: Stoping motor
+13:44:58 INFO rplidar: Stopping scanning
+13:44:59 INFO robot_base: Lidar arrêté
+13:44:59 INFO __main__: Programme terminé.

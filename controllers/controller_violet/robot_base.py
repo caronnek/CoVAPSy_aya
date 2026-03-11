@@ -18,13 +18,38 @@ class Actionneurs:
         self._pwm_prop = HardwarePWM(pwm_channel=0, hz=50)
         self._pwm_dir  = HardwarePWM(pwm_channel=1, hz=50)
         self._actif    = False
+        self._last_v_cmd = 0.0
+        self._last_angle_cmd = 0.0
+        self._last_pwm_prop = config.PWM_STOP_PROP
+        self._last_pwm_dir = config.ANGLE_PWM_CENTRE
+        self._last_debug_print = 0.0
+
+    def _print_debug(self, force=False):
+        if not getattr(config, "DEBUG_ACTIONNEURS", False):
+            return
+        now = time.time()
+        period = float(getattr(config, "DEBUG_PRINT_PERIOD_S", 0.5))
+        if (not force) and (now - self._last_debug_print < period):
+            return
+        self._last_debug_print = now
+        print(
+            "[ACT] "
+            f"actif={self._actif} "
+            f"v_cmd={self._last_v_cmd:.3f} m/s "
+            f"angle_cmd={self._last_angle_cmd:.2f} deg "
+            f"pwm_prop={self._last_pwm_prop:.3f} "
+            f"pwm_dir={self._last_pwm_dir:.3f}"
+        )
 
     def demarrer(self):
         """Active les deux PWM et place la voiture à l'arrêt, roues droites."""
         self._pwm_prop.start(config.PWM_STOP_PROP)
         self._pwm_dir.start(config.ANGLE_PWM_CENTRE)
         self._actif = True
+        self._last_pwm_prop = config.PWM_STOP_PROP
+        self._last_pwm_dir = config.ANGLE_PWM_CENTRE
         logger.info("Actionneurs démarrés")
+        self._print_debug(force=True)
 
     def arreter(self):
         """Remet à l'arrêt puis désactive les PWM."""
@@ -37,7 +62,10 @@ class Actionneurs:
         self._pwm_prop.stop()
         self._pwm_dir.stop()
         self._actif = False
+        self._last_pwm_prop = config.PWM_STOP_PROP
+        self._last_pwm_dir = config.ANGLE_PWM_CENTRE
         logger.info("Actionneurs arrêtés")
+        self._print_debug(force=True)
 
     # ----------------------------------------------------------
     # Commandes de base
@@ -48,26 +76,28 @@ class Actionneurs:
         # Saturation logicielle
         vitesse_m_s = max(-config.VITESSE_MAX_M_S_HARD,
                           min(config.VITESSE_MAX_M_S_SOFT, vitesse_m_s))
+        self._last_v_cmd = vitesse_m_s
 
         if vitesse_m_s == 0:
-            self._pwm_prop.change_duty_cycle(config.PWM_STOP_PROP)
+            pwm_prop = config.PWM_STOP_PROP
         elif vitesse_m_s > 0:
             # pwm_stop + direction * (point_mort + fraction_vitesse)
             v = vitesse_m_s * config.DELTA_PWM_MAX_PROP / config.VITESSE_MAX_M_S_HARD
-            self._pwm_prop.change_duty_cycle(
-                config.PWM_STOP_PROP + config.DIRECTION_PROP * (config.POINT_MORT_PROP + v)
-            )
+            pwm_prop = config.PWM_STOP_PROP + config.DIRECTION_PROP * (config.POINT_MORT_PROP + v)
         else:
             # Marche arrière : soustraction symétrique
             v = vitesse_m_s * config.DELTA_PWM_MAX_PROP / config.VITESSE_MAX_M_S_HARD
-            self._pwm_prop.change_duty_cycle(
-                config.PWM_STOP_PROP - config.DIRECTION_PROP * (config.POINT_MORT_PROP - v)
-            )
+            pwm_prop = config.PWM_STOP_PROP - config.DIRECTION_PROP * (config.POINT_MORT_PROP - v)
+
+        self._last_pwm_prop = float(pwm_prop)
+        self._pwm_prop.change_duty_cycle(self._last_pwm_prop)
+        self._print_debug()
 
     def set_direction_degre(self, angle_degre: float):
         """Commande l'angle de braquage en degrés. 0 = tout droit.
         +angle_degre_max = gauche, -angle_degre_max = droite.
         """
+        self._last_angle_cmd = float(angle_degre)
         # Conversion degrés → duty cycle avec saturation sur les butées physiques
         angle_pwm = (
             config.ANGLE_PWM_CENTRE
@@ -76,7 +106,9 @@ class Actionneurs:
             * angle_degre / (2 * config.ANGLE_DEGRE_MAX)
         )
         angle_pwm = max(config.ANGLE_PWM_MIN, min(config.ANGLE_PWM_MAX, angle_pwm))
-        self._pwm_dir.change_duty_cycle(angle_pwm)
+        self._last_pwm_dir = float(angle_pwm)
+        self._pwm_dir.change_duty_cycle(self._last_pwm_dir)
+        self._print_debug()
 
     def recule(self):
         """Séquence de recul : impulsion courte arrière, pause, puis recul lent."""
@@ -114,6 +146,7 @@ class CapteurLidar:
         self._thread          = None
         self._lidar           = None
         self._lock            = threading.Lock()
+        self._last_debug_print = 0.0
 
     def connecter(self):
         """Ouvre la connexion série et démarre le moteur du lidar.
@@ -167,8 +200,12 @@ class CapteurLidar:
         while self._run:
             try:
                 for scan in self._lidar.iter_scans(scan_type='express'):
+                    # Repart d'un tableau vide a chaque scan pour eviter les valeurs stale.
+                    scan_mm = [0.0] * 360
                     # Chaque 'scan' est une liste de tuples (quality, angle, distance_mm)
                     for _, angle, distance in scan:
+                        if distance <= 0:
+                            continue
                         # Le 0° physique du lidar pointe vers l'ARRIÈRE de la voiture.
                         # Les angles physiques entre -90° et +90° (soit 0-90° et 270-360°)
                         # visent l'intérieur/dessous de la voiture → on les ignore.
@@ -177,9 +214,34 @@ class CapteurLidar:
                             continue
                         # Correction : décalage de 180° pour que tableau_mm[0] = devant.
                         idx = (180 - a) % 360
-                        self._acqui_mm[idx] = distance
+                        distance = min(float(distance), float(config.LIDAR_DMAX_MM))
+                        if scan_mm[idx] == 0.0:
+                            scan_mm[idx] = distance
+                        else:
+                            # Conserve la mesure la plus proche en cas de doublon d'index.
+                            scan_mm[idx] = min(scan_mm[idx], distance)
                     with self._lock:
+                        self._acqui_mm = scan_mm
                         self._nouveau_scan = True
+
+                    if getattr(config, "DEBUG_LIDAR_RAW", False):
+                        now = time.time()
+                        period = float(getattr(config, "DEBUG_PRINT_PERIOD_S", 0.5))
+                        if now - self._last_debug_print >= period:
+                            self._last_debug_print = now
+                            nb_valides = sum(1 for d in scan_mm if d > 0)
+                            d0 = scan_mm[0]
+                            d_l60 = scan_mm[60]
+                            d_l70 = scan_mm[70]
+                            d_r60 = scan_mm[300]
+                            d_r70 = scan_mm[290]
+                            print(
+                                "[LIDAR RAW] "
+                                f"pts={nb_valides}/360 "
+                                f"d0={d0:.0f} d60={d_l60:.0f} d70={d_l70:.0f} "
+                                f"d-60={d_r60:.0f} d-70={d_r70:.0f}"
+                            )
+
                     time.sleep(0.005)
                     if not self._run:
                         break

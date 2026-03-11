@@ -31,9 +31,12 @@ def filtre_moyenneur(tab, fenetre=2):
 
     return tab_filtre
 
-def lire_point_lidar(tab, angle_deg, valeur_defaut=3000.0):
+def lire_point_lidar(tab, angle_deg, valeur_defaut=3000.0, fenetre_deg=4, min_points=1):
     """
-    Lit un point exact du lidar pour un angle donné.
+    Lit un point lidar pour un angle donné.
+    Si le point exact est invalide, cherche dans une petite fenetre angulaire
+    et renvoie la mediane des valeurs valides.
+
     Les indices sont accessibles dans [-180, 179].
     """
     idx = int(angle_deg)
@@ -43,10 +46,17 @@ def lire_point_lidar(tab, angle_deg, valeur_defaut=3000.0):
     elif idx > 179:
         idx -= 360
 
-    valeur = tab[idx]
-    if valeur <= 0:
+    valeurs = []
+    for delta in range(-fenetre_deg, fenetre_deg + 1):
+        k = (idx + delta) % 360
+        valeur = tab[k]
+        if 0 < valeur <= valeur_defaut:
+            valeurs.append(valeur)
+
+    if len(valeurs) < int(min_points):
         return valeur_defaut
-    return valeur
+
+    return float(np.median(valeurs))
 
 def normaliser_distance(d, dmax):
     d = max(0.0, min(d, dmax))
@@ -129,11 +139,13 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
     angle_r2    = -70
 
     # 1) Lecture des 5 points exacts
-    d_l1    = lire_point_lidar(tableau_lidar_filtre, angle_l1)
-    d_l2    = lire_point_lidar(tableau_lidar_filtre, angle_l2)
-    d_front = lire_point_lidar(tableau_lidar_filtre, angle_front)
-    d_r1    = lire_point_lidar(tableau_lidar_filtre, angle_r1)
-    d_r2    = lire_point_lidar(tableau_lidar_filtre, angle_r2)
+    d_l1    = lire_point_lidar(tableau_lidar_filtre, angle_l1, fenetre_deg=3, min_points=2)
+    d_l2    = lire_point_lidar(tableau_lidar_filtre, angle_l2, fenetre_deg=3, min_points=2)
+    # Le front est tres sensible aux retours parasites :
+    # fenetre plus large et seuil de validation plus strict pour eviter les bascules 3000 <-> 330 mm.
+    d_front = lire_point_lidar(tableau_lidar_filtre, angle_front, fenetre_deg=10, min_points=6)
+    d_r1    = lire_point_lidar(tableau_lidar_filtre, angle_r1, fenetre_deg=3, min_points=2)
+    d_r2    = lire_point_lidar(tableau_lidar_filtre, angle_r2, fenetre_deg=3, min_points=2)
 
     # 2) Normalisation
     l1 = normaliser_distance(d_l1,    dmax)

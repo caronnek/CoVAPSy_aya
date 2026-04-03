@@ -40,7 +40,7 @@ L_ENTRAXE_M            = 0.180  # voie du modele utilise par la conversion Acker
 W_EMPATTEMENT_M        = 0.250  # empattement du modele utilise par la conversion Ackermann
 LIDAR_DMAX_MM          = 3000.0 # distance max de normalisation lidar
 VITESSE_AUTO_MIN_M_S   = 0.0    # borne basse de la vitesse issue du reseau
-VITESSE_AUTO_MAX_M_S   = 2.0   # borne haute en conduite autonome reelle (augmenter progressivement)
+VITESSE_AUTO_MAX_M_S   = 0.5   # borne haute en conduite autonome reelle (augmenter progressivement)
 BOUCLE_PERIODE_S       = 0.01   # période de la boucle de contrôle (10 ms)
 
 # ============================================================

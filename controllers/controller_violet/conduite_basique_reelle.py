@@ -18,10 +18,10 @@ from robot_base import Actionneurs, CapteurLidar
 # -----------------------------
 # Reglages comportement basique
 # -----------------------------
-FRONT_WINDOW_DEG = 15      # fenetre [-15, +15] autour du front
+FRONT_WINDOW_DEG = 10      # fenetre [-10, +10] autour du front
 FRONT_MIN_POINTS = 6       # nb mini de points valides pour juger le front fiable
-STOP_DIST_MM = 450.0       # arret immediat sous ce seuil
-SLOW_DIST_MM = 1700.0      # vitesse reduite sous ce seuil
+STOP_DIST_MM = 200.0       # arret immediat sous ce seuil
+SLOW_DIST_MM = 300.0      # vitesse reduite sous ce seuil
 VITESSE_MAX_M_S = 0.22     # vitesse de test prudente
 ALPHA_V = 0.35             # lissage vitesse (0 stable, 1 reactif)
 PRINT_PERIOD_S = 0.25

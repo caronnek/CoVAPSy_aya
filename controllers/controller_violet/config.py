@@ -7,24 +7,30 @@
 # ============================================================
 LIDAR_PORT     = "/dev/ttyUSB0"
 LIDAR_BAUDRATE = 256000
+LIDAR_SCAN_TYPE = "express"   # "express" ou "normal"
+# Si True, ignore le secteur susceptible de voir l'interieur de la voiture.
+# En cas de nuage tres pauvre, laisser False.
+LIDAR_IGNORE_INTERIOR_SECTOR = False
+LIDAR_INTERIOR_MIN_DEG = 90
+LIDAR_INTERIOR_MAX_DEG = 270
 
 # ============================================================
 # PROPULSION — HardwarePWM channel 0, 50 Hz
 # ============================================================
 DIRECTION_PROP      = 1     # 1 = variateur normal, -1 = variateur inversé
 PWM_STOP_PROP       = 7.36  # duty cycle correspondant à l'arrêt (1.5 ms)
-POINT_MORT_PROP     = 0.41  # seuil minimal en dessous duquel la voiture ne bouge pas
+POINT_MORT_PROP     = 0.37  # seuil minimal en dessous duquel la voiture ne bouge pas
 DELTA_PWM_MAX_PROP  = 1.0   # plage PWM entre l'arrêt et la vitesse maximale
 VITESSE_MAX_M_S_HARD = 8.0  # vitesse physique maximale de la voiture (m/s)
-VITESSE_MAX_M_S_SOFT = 0.22 # vitesse logicielle maximale en autonome (m/s) — MODE PRUDENT
+VITESSE_MAX_M_S_SOFT = 2.0  # vitesse maximale souhaitee pour la fonction vitesse_m_s
 
 # ============================================================
 # DIRECTION — HardwarePWM channel 1, 50 Hz
 # ============================================================
 DIRECTION_DIR    = -1   # -1 = angle_pwm_min à droite, +1 = angle_pwm_min à gauche
-ANGLE_PWM_MIN    = 5.5  # butée physique droite (duty cycle)
-ANGLE_PWM_MAX    = 9.3  # butée physique gauche (duty cycle)
-ANGLE_PWM_CENTRE = 7.4  # centre (roues droites)
+ANGLE_PWM_MIN    = 4.5  # butée physique droite (duty cycle)
+ANGLE_PWM_MAX    = 8  # butée physique gauche (duty cycle)
+ANGLE_PWM_CENTRE = 6.25  # centre (roues droites)
 ANGLE_DEGRE_MAX  = 18   # angle max en degrés (vers la gauche)
 
 # ============================================================
@@ -34,7 +40,7 @@ L_ENTRAXE_M            = 0.180  # voie du modele utilise par la conversion Acker
 W_EMPATTEMENT_M        = 0.250  # empattement du modele utilise par la conversion Ackermann
 LIDAR_DMAX_MM          = 3000.0 # distance max de normalisation lidar
 VITESSE_AUTO_MIN_M_S   = 0.0    # borne basse de la vitesse issue du reseau
-VITESSE_AUTO_MAX_M_S   = VITESSE_MAX_M_S_SOFT  # borne haute de securite en autonome
+VITESSE_AUTO_MAX_M_S   = 0.60   # borne haute en conduite autonome reelle (augmenter progressivement)
 
 BOUCLE_PERIODE_S       = 0.01   # période de la boucle de contrôle (10 ms)
 

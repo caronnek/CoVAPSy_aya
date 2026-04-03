@@ -127,6 +127,11 @@ def main():
     act   = Actionneurs()
     # act.demarrer()
     logger.info("Actionneurs initialises et PWM actives")
+    logger.info(
+        "Bornes vitesse auto: min=%.3f m/s, max=%.3f m/s",
+        float(config.VITESSE_AUTO_MIN_M_S),
+        float(config.VITESSE_AUTO_MAX_M_S),
+    )
     
     # =========================
     # Initialisation du LiDAR
@@ -226,6 +231,9 @@ def main():
                 debug=True,
             )
 
+            # Garde-fou: impose explicitement les bornes de vitesse autonome.
+            v_cmd = max(config.VITESSE_AUTO_MIN_M_S, min(config.VITESSE_AUTO_MAX_M_S, float(v_cmd)))
+
             # 6bis) Securite frontale robuste (override vitesse)
             d_front_sec = distance_front_securite(tableau_lidar_filtre)
             v_cible = float(v_cmd)
@@ -247,6 +255,8 @@ def main():
                     v_cible = min(v_cible, v_lim)
                     raison_secu = "ralenti_front"
 
+            v_cible = max(float(config.VITESSE_AUTO_MIN_M_S), min(float(config.VITESSE_AUTO_MAX_M_S), v_cible))
+
             # 6ter) Lissage commandes
             alpha_v = float(getattr(config, "FILTRE_ALPHA_VITESSE", 0.35))
             alpha_a = float(getattr(config, "FILTRE_ALPHA_ANGLE", 0.20))
@@ -254,8 +264,12 @@ def main():
             angle_cmd_filtre = (1.0 - alpha_a) * angle_cmd_filtre + alpha_a * float(angle_cmd)
 
             if d_front_sec is not None and d_front_sec <= float(getattr(config, "SECURITE_FRONT_STOP_MM", 700.0)):
+                # En stop frontal, on annule immediatement la vitesse (pas de trainage du filtre).
+                v_cmd_filtre = 0.0
                 # En stop frontal, on recentre progressivement les roues.
                 angle_cmd_filtre = (1.0 - alpha_a) * angle_cmd_filtre
+
+            v_cmd_filtre = max(float(config.VITESSE_AUTO_MIN_M_S), min(float(config.VITESSE_AUTO_MAX_M_S), v_cmd_filtre))
 
             now = time.time()
             if now - last_print_secu >= float(getattr(config, "DEBUG_PRINT_PERIOD_S", 0.5)):
@@ -265,8 +279,8 @@ def main():
                 else:
                     print(f"[SECU] front={d_front_sec:.1f}mm  v_raw={v_cmd:.3f}  v_safe={v_cible:.3f}  v_out={v_cmd_filtre:.3f}  reason={raison_secu}")
         
-        # Si le sens de rotation est inversé, passer -angle_cmd ici :
-        # angle_cmd = -angle_cmd
+            # Si le sens de rotation est inversé, passer -angle_cmd ici :
+            # angle_cmd = -angle_cmd
         
             # 7) Commande véhicule
             act.set_direction_degre(angle_cmd_filtre)

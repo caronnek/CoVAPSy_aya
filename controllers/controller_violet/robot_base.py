@@ -98,14 +98,17 @@ class Actionneurs:
         +angle_degre_max = gauche, -angle_degre_max = droite.
         """
         self._last_angle_cmd = float(angle_degre)
-        # Conversion degrés → duty cycle avec saturation sur les butées physiques
+        # Conversion degrés -> duty cycle robuste même si ANGLE_PWM_MIN/MAX sont inversés.
+        low = min(config.ANGLE_PWM_MIN, config.ANGLE_PWM_MAX)
+        high = max(config.ANGLE_PWM_MIN, config.ANGLE_PWM_MAX)
+        span = high - low
         angle_pwm = (
             config.ANGLE_PWM_CENTRE
             + config.DIRECTION_DIR
-            * (config.ANGLE_PWM_MAX - config.ANGLE_PWM_MIN)
+            * span
             * angle_degre / (2 * config.ANGLE_DEGRE_MAX)
         )
-        angle_pwm = max(config.ANGLE_PWM_MIN, min(config.ANGLE_PWM_MAX, angle_pwm))
+        angle_pwm = max(low, min(high, angle_pwm))
         self._last_pwm_dir = float(angle_pwm)
         self._pwm_dir.change_duty_cycle(self._last_pwm_dir)
         self._print_debug()
@@ -199,6 +202,11 @@ class CapteurLidar:
         """Boucle interne du thread d'acquisition (exécutée dans le thread lidar)."""
         while self._run:
             try:
+                ignore_sector = bool(getattr(config, "LIDAR_IGNORE_INTERIOR_SECTOR", False))
+                interior_min = int(getattr(config, "LIDAR_INTERIOR_MIN_DEG", 90))
+                interior_max = int(getattr(config, "LIDAR_INTERIOR_MAX_DEG", 270))
+
+                # Appel valide sur cette version de rplidar (teste en production locale).
                 for scan in self._lidar.iter_scans(scan_type='express'):
                     # Repart d'un tableau vide a chaque scan pour eviter les valeurs stale.
                     scan_mm = [0.0] * 360
@@ -206,11 +214,9 @@ class CapteurLidar:
                     for _, angle, distance in scan:
                         if distance <= 0:
                             continue
-                        # Le 0° physique du lidar pointe vers l'ARRIÈRE de la voiture.
-                        # Les angles physiques entre -90° et +90° (soit 0-90° et 270-360°)
-                        # visent l'intérieur/dessous de la voiture → on les ignore.
+                        # Optionnel: ignorer un secteur (interieur voiture) selon la config.
                         a = int(angle) % 360
-                        if a <= 90 or a >= 270:
+                        if ignore_sector and (interior_min <= a <= interior_max):
                             continue
                         # Correction : décalage de 180° pour que tableau_mm[0] = devant.
                         idx = (180 - a) % 360

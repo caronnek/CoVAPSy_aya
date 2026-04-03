@@ -27,7 +27,7 @@ VITESSE_MAX_M_S_SOFT = 2.0  # vitesse maximale souhaitee pour la fonction vitess
 # ============================================================
 # DIRECTION — HardwarePWM channel 1, 50 Hz
 # ============================================================
-DIRECTION_DIR    = -1   # -1 = angle_pwm_min à droite, +1 = angle_pwm_min à gauche
+DIRECTION_DIR    = 1   # 1 = angle_pwm_min à droite, +1 = angle_pwm_min à gauche
 ANGLE_PWM_MIN    = 4.5  # butée physique droite (duty cycle)
 ANGLE_PWM_MAX    = 8  # butée physique gauche (duty cycle)
 ANGLE_PWM_CENTRE = 6.25  # centre (roues droites)
@@ -40,7 +40,7 @@ L_ENTRAXE_M            = 0.180  # voie du modele utilise par la conversion Acker
 W_EMPATTEMENT_M        = 0.250  # empattement du modele utilise par la conversion Ackermann
 LIDAR_DMAX_MM          = 3000.0 # distance max de normalisation lidar
 VITESSE_AUTO_MIN_M_S   = 0.0    # borne basse de la vitesse issue du reseau
-VITESSE_AUTO_MAX_M_S   = 0.60   # borne haute en conduite autonome reelle (augmenter progressivement)
+VITESSE_AUTO_MAX_M_S   = 0.6   # borne haute en conduite autonome reelle (augmenter progressivement)
 
 BOUCLE_PERIODE_S       = 0.01   # période de la boucle de contrôle (10 ms)
 
@@ -52,6 +52,16 @@ SECURITE_FRONT_RALENTI_MM    = 1500.0  # reduction progressive de vitesse sous c
 SECURITE_FRONT_FENETRE_DEG   = 15      # fenetre angulaire frontale pour la decision de securite
 SECURITE_FRONT_MIN_POINTS    = 5       # nombre mini de points valides pour juger le front fiable
 SECURITE_VITESSE_INCERTAINE  = 0.05    # vitesse max si front non fiable (peu de points)
+
+# ============================================================
+# MACHINE A ETATS NAVIGATION / BLOCAGE
+# ============================================================
+SEUIL_FRONT_BLOCAGE_MM       = 500.0   # passage en mode blocage si obstacle proche
+SEUIL_FRONT_DEGAGEMENT_MM    = 1500.0  # seuil de front libre pour sortir des manoeuvres
+SEUIL_ARRIERE_DEGAGEMENT_MM  = 300.0   # stop recul si obstacle arriere proche
+ANGLE_RECUL_FIXE_DEG         = 15.0    # angle fixe pour manoeuvres gauche/droite
+VITESSE_BLOCAGE_M_S          = 0.5     # vitesse de manoeuvre en mode blocage
+BLOCAGE_ACTION_DURATION_S    = 1.0     # duree max d'une action BACKWARD/TURN
 
 # ============================================================
 # FILTRAGE DES COMMANDES (stabilisation)

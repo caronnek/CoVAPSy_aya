@@ -219,7 +219,7 @@ class CapteurLidar:
                         if ignore_sector and (interior_min <= a <= interior_max):
                             continue
                         # Correction : décalage de 180° pour que tableau_mm[0] = devant.
-                        idx = (180 - a) % 360
+                        idx = a % 360 #(180 - a) % 360
                         distance = min(float(distance), float(config.LIDAR_DMAX_MM))
                         if scan_mm[idx] == 0.0:
                             scan_mm[idx] = distance
@@ -271,13 +271,13 @@ if __name__ == "__main__":
 
     try:
         print("Test robot_base.py — Ctrl+C pour arrêter")
-        print("Attente de 3 scans lidar...")
-        nb = 0
-        while nb < 3:
+        print("Affichage des obstacles à < 2000 mm sur 360°\n")
+        while 1:
             if lidar.lire():
-                print(f"Scan #{nb+1} — devant : {lidar.tableau_mm[0]:.0f} mm")
-                nb += 1
-            time.sleep(0.01)
+                for angle, dist in enumerate(lidar.tableau_mm) :
+                    if 0 < dist < 500:
+                        print(f"Angle {angle}° : {dist:.0f} mm")
+            time.sleep(2)
     except KeyboardInterrupt:
         pass
     finally:

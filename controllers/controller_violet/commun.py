@@ -122,7 +122,7 @@ def differentiel_vers_ackermann(u_g, u_d, L, W, v_min, v_max, angle_max_deg):
 
 
 def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxangle_degre,
-                           dmax=3000.0, v_min=0.4, v_max=1.2, debug=False):
+                           dmax=3000.0, v_min=0.4, v_max=1.2, debug=False, retour_detail=False):
     """
     Calcule la commande autonome a partir du lidar filtre.
 
@@ -134,39 +134,47 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
     # Angles des points pertinents
     angle_l1    =  60
     angle_l2    =  70
+    angle_lf1   =   5
     angle_front =   0
+    angle_rf1   =  -5
     angle_r1    = -60
     angle_r2    = -70
 
-    # 1) Lecture des 5 points exacts
+    # 1) Lecture des points lidar
     d_l1    = lire_point_lidar(tableau_lidar_filtre, angle_l1, fenetre_deg=3, min_points=2)
     d_l2    = lire_point_lidar(tableau_lidar_filtre, angle_l2, fenetre_deg=3, min_points=2)
+    d_lf1   = lire_point_lidar(tableau_lidar_filtre, angle_lf1, fenetre_deg=3, min_points=2)
     # Le front est tres sensible aux retours parasites :
     # fenetre plus large et seuil de validation plus strict pour eviter les bascules 3000 <-> 330 mm.
     d_front = lire_point_lidar(tableau_lidar_filtre, angle_front, fenetre_deg=10, min_points=6)
+    d_rf1   = lire_point_lidar(tableau_lidar_filtre, angle_rf1, fenetre_deg=3, min_points=2)
     d_r1    = lire_point_lidar(tableau_lidar_filtre, angle_r1, fenetre_deg=3, min_points=2)
     d_r2    = lire_point_lidar(tableau_lidar_filtre, angle_r2, fenetre_deg=3, min_points=2)
 
     # 2) Normalisation
     l1 = normaliser_distance(d_l1,    dmax)
     l2 = normaliser_distance(d_l2,    dmax)
+    lf1 = normaliser_distance(d_lf1,  dmax)
     f  = normaliser_distance(d_front, dmax)
+    rf1 = normaliser_distance(d_rf1,  dmax)
     r1 = normaliser_distance(d_r1,    dmax)
     r2 = normaliser_distance(d_r2,    dmax)
 
     # 3) Conversion en proximite
     p_l1 = 1.0 - l1
     p_l2 = 1.0 - l2
+    p_lf1 = 1.0 - lf1
     p_f  = 1.0 - f
+    p_rf1 = 1.0 - rf1
     p_r1 = 1.0 - r1
     p_r2 = 1.0 - r2
 
-    # 4) Vecteur d'entree du reseau  [biais, p_l1, p_l2, p_f, p_r1, p_r2]
-    x = np.array([1.0, p_l1, p_l2, p_f, p_r1, p_r2])
+    # 4) Vecteur d'entree du reseau  [biais, p_l1, p_l2, p_lf1, p_f, p_rf1, p_r1, p_r2]
+    x = np.array([1.0, p_l1, p_l2, p_lf1, p_f, p_rf1, p_r1, p_r2])
 
     # 5) Reseau virtuel differentiel
-    w_g = np.array([ 1.2,  0.8,  0.8, -1.6, -0.6, -0.6])
-    w_d = np.array([ 1.2, -0.6, -0.6, -1.6,  0.8,  0.8])
+    w_g = np.array([ 1.2,  0.8,  0.8, -0.2, -1.2,  0.2, -0.6, -0.6])
+    w_d = np.array([ 1.2, -0.6, -0.6,  0.2, -1.2, -0.2,  0.8,  0.8])
 
     u_g = np.tanh(np.dot(x, w_g))
     u_d = np.tanh(np.dot(x, w_d))
@@ -187,12 +195,34 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
         # =========================
         print("--------------------------------------------------")
         print(f"d_l1     = {d_l1:.1f} mm  |  d_l2    = {d_l2:.1f} mm")
+        print(f"d_lf1    = {d_lf1:.1f} mm")
         print(f"d_front  = {d_front:.1f} mm")
+        print(f"d_rf1    = {d_rf1:.1f} mm")
         print(f"d_r1     = {d_r1:.1f} mm  |  d_r2    = {d_r2:.1f} mm")
-        print(f"p_l1={p_l1:.3f}  p_l2={p_l2:.3f}  p_f={p_f:.3f}  p_r1={p_r1:.3f}  p_r2={p_r2:.3f}")
+        print(f"p_l1={p_l1:.3f}  p_l2={p_l2:.3f}  p_lf1={p_lf1:.3f}  p_f={p_f:.3f}  p_rf1={p_rf1:.3f}  p_r1={p_r1:.3f}  p_r2={p_r2:.3f}")
         print(f"u_g      = {u_g:.3f}  |  u_d     = {u_d:.3f}")
         print(f"v_cmd    = {v_cmd:.3f} m/s")
         print(f"angle    = {angle_cmd:.3f} deg")
 
-    return v_cmd, angle_cmd
+    if not retour_detail:
+        return v_cmd, angle_cmd
 
+    details = {
+        "d_l1": float(d_l1),
+        "d_l2": float(d_l2),
+        "d_lf1": float(d_lf1),
+        "d_front": float(d_front),
+        "d_rf1": float(d_rf1),
+        "d_r1": float(d_r1),
+        "d_r2": float(d_r2),
+        "p_l1": float(p_l1),
+        "p_l2": float(p_l2),
+        "p_lf1": float(p_lf1),
+        "p_f": float(p_f),
+        "p_rf1": float(p_rf1),
+        "p_r1": float(p_r1),
+        "p_r2": float(p_r2),
+        "u_g": float(u_g),
+        "u_d": float(u_d),
+    }
+    return v_cmd, angle_cmd, details

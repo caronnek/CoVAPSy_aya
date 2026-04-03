@@ -421,3 +421,25 @@ rplidar.RPLidarException: Failed to connect to the sensor due to: [Errno 2] coul
 16:14:08 INFO rplidar: Stopping scanning
 16:14:09 INFO robot_base: Lidar arrêté
 16:14:09 INFO __main__: Programme terminé.
+16:22:56 INFO __main__: Actionneurs initialises et PWM actives
+16:22:56 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.220 m/s
+16:22:56 INFO __main__: Connexion au lidar...
+16:22:56 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+16:22:56 INFO rplidar: Starting motor
+16:22:57 INFO rplidar: Starting motor
+16:22:57 INFO robot_base: Thread lidar démarré
+16:22:57 INFO rplidar: Asking for health
+16:22:57 INFO rplidar: starting scan process in express mode
+16:23:03 INFO __main__: Mode auto active par l'utilisateur
+16:23:03 INFO robot_base: Actionneurs démarrés
+16:23:34 INFO __main__: Mode auto desactive par l'utilisateur
+16:23:34 INFO robot_base: Actionneurs arrêtés
+16:24:12 INFO __main__: Mode auto active par l'utilisateur
+16:24:12 INFO robot_base: Actionneurs démarrés
+16:24:43 INFO __main__: Quitter le programme.
+16:24:43 INFO __main__: Arrêt propre en cours...
+16:24:43 INFO robot_base: Actionneurs arrêtés
+16:24:43 INFO rplidar: Stoping motor
+16:24:43 INFO rplidar: Stopping scanning
+16:24:44 INFO robot_base: Lidar arrêté
+16:24:44 INFO __main__: Programme terminé.

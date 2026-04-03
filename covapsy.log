@@ -214,3 +214,222 @@ rplidar.RPLidarException: Incorrect descriptor starting bytes
 14:07:56 INFO rplidar: Stopping scanning
 14:07:57 INFO robot_base: Lidar arrêté
 14:07:57 INFO __main__: Programme terminé.
+16:39:13 INFO __main__: Actionneurs initialises et PWM actives
+16:39:13 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.220 m/s
+16:39:13 INFO __main__: Connexion au lidar...
+16:39:13 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+16:39:13 INFO rplidar: Starting motor
+16:39:14 INFO rplidar: Starting motor
+16:39:14 INFO robot_base: Thread lidar démarré
+16:39:14 INFO rplidar: Asking for health
+16:39:14 INFO rplidar: starting scan process in express mode
+16:39:18 INFO __main__: Mode auto active par l'utilisateur
+16:39:18 INFO robot_base: Actionneurs démarrés
+16:39:50 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+16:39:50 INFO __main__: Arrêt propre en cours...
+16:39:51 INFO robot_base: Actionneurs arrêtés
+16:39:51 INFO rplidar: Stoping motor
+16:39:51 INFO rplidar: Stopping scanning
+16:39:52 INFO robot_base: Lidar arrêté
+16:39:52 INFO __main__: Programme terminé.
+16:40:13 INFO __main__: Actionneurs initialises et PWM actives
+16:40:13 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.220 m/s
+16:40:13 INFO __main__: Connexion au lidar...
+16:40:13 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+16:40:13 INFO rplidar: Starting motor
+16:40:14 INFO rplidar: Starting motor
+16:40:14 INFO robot_base: Thread lidar démarré
+16:40:14 INFO rplidar: Asking for health
+16:40:14 INFO rplidar: starting scan process in express mode
+16:40:24 INFO __main__: Mode auto active par l'utilisateur
+16:40:24 INFO robot_base: Actionneurs démarrés
+16:39:20 INFO __main__: Actionneurs initialises et PWM actives
+16:39:20 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.220 m/s
+16:39:20 INFO __main__: Connexion au lidar...
+16:39:20 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+16:39:20 INFO rplidar: Starting motor
+16:39:21 INFO rplidar: Starting motor
+16:39:21 INFO robot_base: Thread lidar démarré
+16:39:21 INFO rplidar: Asking for health
+16:39:21 INFO rplidar: starting scan process in express mode
+16:39:22 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+16:39:22 INFO __main__: Arrêt propre en cours...
+16:39:23 INFO robot_base: Actionneurs arrêtés
+16:39:23 INFO rplidar: Stoping motor
+16:39:23 INFO rplidar: Stopping scanning
+16:39:24 INFO robot_base: Lidar arrêté
+16:39:24 INFO __main__: Programme terminé.
+16:40:48 INFO __main__: Actionneurs initialises et PWM actives
+16:40:48 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.220 m/s
+16:40:48 INFO __main__: Connexion au lidar...
+16:40:48 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+16:40:48 INFO rplidar: Starting motor
+16:40:49 INFO rplidar: Starting motor
+16:40:49 INFO robot_base: Thread lidar démarré
+16:40:49 INFO rplidar: Asking for health
+16:40:49 INFO rplidar: starting scan process in express mode
+16:45:37 INFO __main__: Mode auto active par l'utilisateur
+16:45:37 INFO robot_base: Actionneurs démarrés
+16:46:40 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+16:46:40 INFO __main__: Arrêt propre en cours...
+16:46:40 INFO robot_base: Actionneurs arrêtés
+16:46:40 INFO rplidar: Stoping motor
+16:46:40 INFO rplidar: Stopping scanning
+16:46:41 INFO robot_base: Lidar arrêté
+16:46:41 INFO __main__: Programme terminé.
+16:46:51 INFO __main__: Actionneurs initialises et PWM actives
+16:46:51 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.600 m/s
+16:46:51 INFO __main__: Connexion au lidar...
+16:46:51 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+16:46:51 INFO rplidar: Starting motor
+16:46:52 INFO rplidar: Starting motor
+16:46:52 INFO robot_base: Thread lidar démarré
+16:46:52 INFO rplidar: Asking for health
+16:46:52 INFO rplidar: starting scan process in express mode
+16:46:58 INFO __main__: Mode auto active par l'utilisateur
+16:46:58 INFO robot_base: Actionneurs démarrés
+16:47:01 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+16:47:01 INFO __main__: Arrêt propre en cours...
+16:47:01 INFO robot_base: Actionneurs arrêtés
+16:47:01 INFO rplidar: Stoping motor
+16:47:01 INFO rplidar: Stopping scanning
+116:55:09 INFO __main__: Actionneurs initialises et PWM actives
+16:55:09 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.600 m/s
+16:55:09 INFO __main__: Connexion au lidar...
+16:55:09 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+16:55:09 INFO rplidar: Starting motor
+16:55:10 INFO rplidar: Starting motor
+16:55:10 INFO rplidar: Asking for health
+16:55:10 INFO robot_base: Thread lidar démarré
+16:55:10 INFO rplidar: starting scan process in express mode
+16:55:12 INFO __main__: Mode auto active par l'utilisateur
+16:55:12 INFO robot_base: Actionneurs démarrés
+16:55:36 INFO __main__: Mode auto desactive par l'utilisateur
+16:55:36 INFO robot_base: Actionneurs arrêtés
+16:55:54 INFO __main__: Mode auto active par l'utilisateur
+16:55:54 INFO robot_base: Actionneurs démarrés
+16:56:08 INFO __main__: Mode auto desactive par l'utilisateur
+16:56:08 INFO robot_base: Actionneurs arrêtés
+16:56:26 INFO __main__: Mode auto active par l'utilisateur
+16:56:26 INFO robot_base: Actionneurs démarrés
+16:56:35 INFO __main__: Mode auto desactive par l'utilisateur
+16:56:35 INFO robot_base: Actionneurs arrêtés
+16:57:07 INFO __main__: Mode auto active par l'utilisateur
+16:57:07 INFO robot_base: Actionneurs démarrés
+16:57:09 INFO __main__: Mode auto desactive par l'utilisateur
+16:57:09 INFO robot_base: Actionneurs arrêtés
+16:57:11 INFO __main__: Mode auto active par l'utilisateur
+16:57:11 INFO robot_base: Actionneurs démarrés
+16:57:14 INFO __main__: Mode auto desactive par l'utilisateur
+16:57:14 INFO robot_base: Actionneurs arrêtés
+16:57:24 INFO __main__: Mode auto active par l'utilisateur
+16:57:24 INFO robot_base: Actionneurs démarrés
+16:57:27 INFO __main__: Mode auto desactive par l'utilisateur
+16:57:27 INFO robot_base: Actionneurs arrêtés
+16:58:53 INFO __main__: Mode auto active par l'utilisateur
+16:58:53 INFO robot_base: Actionneurs démarrés
+16:59:32 INFO __main__: Mode auto desactive par l'utilisateur
+16:59:32 INFO robot_base: Actionneurs arrêtés
+16:59:46 INFO __main__: Mode auto active par l'utilisateur
+16:59:46 INFO robot_base: Actionneurs démarrés
+16:59:53 INFO __main__: Mode auto desactive par l'utilisateur
+16:59:53 INFO robot_base: Actionneurs arrêtés
+17:00:19 INFO __main__: Mode auto active par l'utilisateur
+17:00:19 INFO robot_base: Actionneurs démarrés
+17:00:54 INFO __main__: Mode auto desactive par l'utilisateur
+17:00:54 INFO robot_base: Actionneurs arrêtés
+17:01:32 INFO __main__: Mode auto active par l'utilisateur
+17:01:33 INFO robot_base: Actionneurs démarrés
+17:01:38 INFO __main__: Mode auto desactive par l'utilisateur
+17:01:38 INFO robot_base: Actionneurs arrêtés
+17:02:30 INFO __main__: Quitter le programme.
+17:02:30 INFO __main__: Arrêt propre en cours...
+17:02:30 INFO robot_base: Actionneurs arrêtés
+17:02:30 INFO rplidar: Stoping motor
+17:02:30 INFO rplidar: Stopping scanning
+17:02:32 INFO robot_base: Lidar arrêté
+17:02:32 INFO __main__: Programme terminé.
+17:13:39 INFO __main__: Actionneurs initialises et PWM actives
+17:13:39 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.600 m/s
+17:13:39 INFO __main__: Connexion au lidar...
+17:13:39 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+17:13:39 INFO rplidar: Starting motor
+17:13:40 INFO rplidar: Starting motor
+17:13:40 INFO robot_base: Thread lidar démarré
+17:13:40 INFO rplidar: Asking for health
+17:13:40 INFO rplidar: starting scan process in express mode
+17:14:59 INFO __main__: Mode auto active par l'utilisateur
+17:14:59 INFO robot_base: Actionneurs démarrés
+17:14:59 INFO __main__: Arrêt propre en cours...
+17:14:59 INFO robot_base: Actionneurs arrêtés
+17:14:59 INFO rplidar: Stoping motor
+17:14:59 INFO rplidar: Stopping scanning
+17:15:00 INFO robot_base: Lidar arrêté
+17:15:00 INFO __main__: Programme terminé.
+                                                                                                                                17:15:56 INFO __main__: Actionneurs initialises et PWM actives
+17:15:56 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.600 m/s
+17:15:56 INFO __main__: Connexion au lidar...
+17:15:56 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+17:15:56 INFO rplidar: Starting motor
+17:15:57 INFO rplidar: Starting motor
+17:15:57 INFO robot_base: Thread lidar démarré
+17:15:57 INFO rplidar: Asking for health
+17:15:57 INFO rplidar: starting scan process in express mode
+17:16:01 INFO __main__: Mode auto active par l'utilisateur
+17:16:01 INFO robot_base: Actionneurs démarrés
+17:16:07 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+17:16:07 INFO __main__: Arrêt propre en cours...
+17:16:07 INFO robot_base: Actionneurs arrêtés
+17:16:07 INFO rplidar: Stoping motor
+17:16:07 INFO rplidar: Stopping scanning
+17:16:09 INFO robot_base: Lidar arrêté
+17:16:09 INFO __main__: Programme terminé.
+17:16:26 INFO __main__: Actionneurs initialises et PWM actives
+17:16:26 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.600 m/s
+17:16:26 INFO __main__: Connexion au lidar...
+17:16:26 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+17:16:26 INFO rplidar: Starting motor
+17:16:27 INFO rplidar: Starting motor
+17:16:27 INFO robot_base: Thread lidar démarré
+17:16:27 INFO rplidar: Asking for health
+17:16:27 INFO rplidar: starting scan process in express mode
+17:16:30 INFO __main__: Mode auto active par l'utilisateur
+17:16:30 INFO robot_base: Actionneurs démarrés
+17:16:30 INFO __main__: Transition NAVIGATION -> BLOCAGE
+17:16:37 INFO __main__: BACKWARD -> TURN_LEFT
+17:16:45 INFO __main__: TURN_LEFT -> BACKWARD
+17:16:52 INFO __main__: BACKWARD -> TURN_LEFT
+17:16:53 INFO __main__: Mode auto desactive par l'utilisateur
+17:16:53 INFO robot_base: Actionneurs arrêtés
+17:17:09 INFO __main__: Interruption clavier recue (Ctrl+C) — arret propre
+17:17:09 INFO __main__: Arrêt propre en cours...
+17:17:10 INFO robot_base: Actionneurs arrêtés
+17:17:10 INFO rplidar: Stoping motor
+17:17:10 INFO rplidar: Stopping scanning
+17:17:11 INFO robot_base: Lidar arrêté
+17:17:11 INFO __main__: Programme terminé.
+17:17:37 INFO __main__: Actionneurs initialises et PWM actives
+17:17:37 INFO __main__: Bornes vitesse auto: min=0.000 m/s, max=0.600 m/s
+17:17:37 INFO __main__: Connexion au lidar...
+17:17:37 INFO robot_base: Lidar connecté : {'model': 44, 'firmware': (1, 32), 'hardware': 6, 'serialnumber': 'CEF3EDF9C7E29BD1A7E39EF25E20431B'}
+17:17:37 INFO rplidar: Starting motor
+17:17:38 INFO rplidar: Starting motor
+17:17:38 INFO robot_base: Thread lidar démarré
+17:17:38 INFO rplidar: Asking for health
+17:17:38 INFO rplidar: starting scan process in express mode
+17:17:41 INFO __main__: Mode auto active par l'utilisateur
+17:17:41 INFO robot_base: Actionneurs démarrés
+17:17:59 INFO __main__: Transition NAVIGATION -> BLOCAGE
+17:18:06 INFO __main__: BACKWARD -> TURN_LEFT
+17:18:13 INFO __main__: TURN_LEFT -> BACKWARD
+17:18:21 INFO __main__: BACKWARD -> TURN_LEFT
+17:18:28 INFO __main__: TURN_LEFT -> CAMERA_CHECKING
+17:18:28 INFO __main__: CAMERA_CHECKING -> NAVIGATION
+17:18:33 INFO __main__: Transition NAVIGATION -> BLOCAGE
+17:18:40 INFO __main__: BACKWARD -> TURN_LEFT
+17:18:48 INFO __main__: TURN_LEFT -> CAMERA_CHECKING
+17:18:48 INFO __main__: CAMERA_CHECKING -> NAVIGATION
+17:18:53 INFO __main__: Transition NAVIGATION -> BLOCAGE
+17:18:54 INFO __main__: BACKWARD -> TURN_LEFT
+17:18:59 INFO __main__: Mode auto desactive par l'utilisateur
+17:18:59 INFO robot_base: Actionneurs arrêtés

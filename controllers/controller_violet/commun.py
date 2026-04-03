@@ -101,26 +101,15 @@ def differentiel_vers_ackermann(u_g, u_d, L, W, v_min, v_max, angle_max_deg):
     # --- Étape 2 : vitesse de commande ---
     v_cmd = v_min + (v_max - v_min) * max(0.0, v_norm)
 
-    # --- Étape 3 : rayon de courbure ---
-    omega_seuil = 1e-4            # évite la division par zéro (ligne droite)
-    if abs(omega) < omega_seuil:
-        # Tout droit : angle nul
-        angle_deg = 0.0
-    else:
-        R = v_norm / omega        # rayon signé (négatif = droite)
+    # --- Étape 3 : angle Ackermann (forme continue, sans branchement) ---
+    v_eps = 1e-3
+    denom = np.sign(v_norm + 1e-9) * max(abs(v_norm), v_eps)
+    angle_rad = np.arctan(W * omega / denom)
+    angle_deg = np.degrees(angle_rad)
 
-        # --- Étape 4 : angle Ackermann (roue centrale de référence) ---
-        # δ = arctan(W / R)
-        # Négatif car convention Webots : angle+ = droite mécanique
-        angle_rad = np.arctan(W / R)
-        angle_deg = np.degrees(angle_rad)
-
-    # Saturation
+    # Saturation mecanique de l'angle
     angle_deg = float(np.clip(angle_deg, -angle_max_deg, angle_max_deg))
-    
-    ratio= abs(angle_deg/angle_max_deg)
-    v_cmd = v_max-(v_max-v_min)*ratio
-    print(f"angle_deg={angle_deg:.1f}  ratio={ratio:.2f}  v_cmd={v_cmd:.2f}")
+    print(f"angle_deg={angle_deg:.1f}  v_cmd_base={v_cmd:.2f}")
     
 
     return v_cmd, angle_deg
@@ -137,20 +126,20 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
     """
 
     # Angles des points pertinents
-    angle_l1    =  60
-    angle_l2    =  70
+    angle_l1    =  63
+    angle_l2    =  73
     angle_front =   0
-    angle_r1    = -60
-    angle_r2    = -70
+    angle_r1    = -63
+    angle_r2    = -73
 
     # 1) Lecture des 5 points exacts
-    d_l1    = lire_point_lidar(tableau_lidar_filtre, angle_l1, fenetre_deg=3, min_points=2)
-    d_l2    = lire_point_lidar(tableau_lidar_filtre, angle_l2, fenetre_deg=3, min_points=2)
+    d_l1 = lire_point_lidar(tableau_lidar_filtre, angle_l1, fenetre_deg=4, min_points=2)
+    d_l2 = lire_point_lidar(tableau_lidar_filtre, angle_l2, fenetre_deg=4, min_points=2)
     # Le front est tres sensible aux retours parasites :
     # fenetre plus large et seuil de validation plus strict pour eviter les bascules 3000 <-> 330 mm.
-    d_front = lire_point_lidar(tableau_lidar_filtre, angle_front, fenetre_deg=10, min_points=6)
-    d_r1    = lire_point_lidar(tableau_lidar_filtre, angle_r1, fenetre_deg=3, min_points=2)
-    d_r2    = lire_point_lidar(tableau_lidar_filtre, angle_r2, fenetre_deg=3, min_points=2)
+    d_front = lire_point_lidar(tableau_lidar_filtre, angle_front, fenetre_deg=4, min_points=2)
+    d_r1 = lire_point_lidar(tableau_lidar_filtre, angle_r1, fenetre_deg=4, min_points=2)
+    d_r2 = lire_point_lidar(tableau_lidar_filtre, angle_r2, fenetre_deg=4, min_points=2)
 
     # 2) Normalisation
     l1 = normaliser_distance(d_l1,    dmax)
@@ -169,7 +158,7 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
     # 4) Vecteur d'entree du reseau  [biais, p_l1, p_l2, p_f, p_r1, p_r2]
     x = np.array([1.0, p_l1, p_l2, p_f, p_r1, p_r2])
 
-    # 5) Reseau virtuel differentiel
+    # 5) Reseau virtuel differentiel (version plus conservative)
     w_g = np.array([ 1.2,  0.8,  0.8, -1.6, -0.6, -0.6])
     w_d = np.array([ 1.2, -0.6, -0.6, -1.6,  0.8,  0.8])
 
@@ -186,6 +175,20 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
         angle_max_deg=maxangle_degre
     )
 
+    # 6bis) Vitesse continue (sans if):
+    # - avance issue du reseau
+    # - reduction si desequilibre lateral important
+    # - reduction si front proche
+    v_norm = max(0.0, (u_g + u_d) / 2.0)
+    lat_g = 0.5 * (p_l1 + p_l2)
+    lat_d = 0.5 * (p_r1 + p_r2)
+    gain_equilibre = np.exp(-2.0 * (lat_g - lat_d) ** 2)
+    gain_front = max(0.0, f) ** 1.5
+    gain_avance = v_norm ** 1.4
+
+    v_cmd = v_min + (v_max - v_min) * gain_avance * gain_equilibre * gain_front
+    v_cmd = float(np.clip(v_cmd, v_min, v_max))
+
     if debug:
         # =========================
         # Debug
@@ -196,6 +199,7 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
         print(f"d_r1     = {d_r1:.1f} mm  |  d_r2    = {d_r2:.1f} mm")
         print(f"p_l1={p_l1:.3f}  p_l2={p_l2:.3f}  p_f={p_f:.3f}  p_r1={p_r1:.3f}  p_r2={p_r2:.3f}")
         print(f"u_g      = {u_g:.3f}  |  u_d     = {u_d:.3f}")
+        print(f"g_eq={gain_equilibre:.3f}  g_front={gain_front:.3f}  g_v={gain_avance:.3f}")
         print(f"v_cmd    = {v_cmd:.3f} m/s")
         print(f"angle    = {angle_cmd:.3f} deg")
 

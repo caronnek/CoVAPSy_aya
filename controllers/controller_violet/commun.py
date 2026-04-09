@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 # =========================
 # Fonctions traitement LiDAR
@@ -61,6 +62,161 @@ def lire_point_lidar(tab, angle_deg, valeur_defaut=3000.0, fenetre_deg=4, min_po
 def normaliser_distance(d, dmax):
     d = max(0.0, min(d, dmax))
     return d / dmax
+
+
+def distance_secteur_lidar(tab_mm, centre_deg, demi_fenetre_deg=15,
+                           dmax=3000.0, min_points=5, quantile=20):
+    """
+    Estime une distance robuste dans un secteur angulaire du LiDAR.
+
+    Exemple: centre_deg=0 pour le front, centre_deg=180 pour l'arriere.
+    Retourne None si trop peu de points valides.
+    """
+    centre = int(centre_deg) % 360
+    fen = int(max(0, demi_fenetre_deg))
+
+    valeurs = []
+    for delta in range(-fen, fen + 1):
+        idx = (centre + delta) % 360
+        d = float(tab_mm[idx])
+        if 0.0 < d <= float(dmax):
+            valeurs.append(d)
+
+    if len(valeurs) < int(min_points):
+        return None
+
+    q = float(np.clip(quantile, 0.0, 100.0))
+    return float(np.percentile(valeurs, q))
+
+
+def detect_color_hsv(roi_bgr,
+                     min_ratio=0.03,
+                     dominance=1.15,
+                     unknown_value=-1):
+    """
+    Detecte la couleur dominante dans une ROI.
+    Retourne: (nom_couleur, valeur_bit, ratio_rouge, ratio_vert)
+    """
+    hsv = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2HSV)
+
+    lower_red1 = np.array([0, 90, 60], dtype=np.uint8)
+    upper_red1 = np.array([10, 255, 255], dtype=np.uint8)
+    lower_red2 = np.array([170, 90, 60], dtype=np.uint8)
+    upper_red2 = np.array([180, 255, 255], dtype=np.uint8)
+
+    lower_green = np.array([40, 70, 50], dtype=np.uint8)
+    upper_green = np.array([95, 255, 255], dtype=np.uint8)
+
+    mask_red1 = cv2.inRange(hsv, lower_red1, upper_red1)
+    mask_red2 = cv2.inRange(hsv, lower_red2, upper_red2)
+    mask_red = cv2.bitwise_or(mask_red1, mask_red2)
+    mask_green = cv2.inRange(hsv, lower_green, upper_green)
+
+    # Petit nettoyage du bruit sur chaque masque binaire.
+    kernel = np.ones((3, 3), np.uint8)
+    mask_red = cv2.morphologyEx(mask_red, cv2.MORPH_OPEN, kernel)
+    mask_green = cv2.morphologyEx(mask_green, cv2.MORPH_OPEN, kernel)
+
+    total = max(1, roi_bgr.shape[0] * roi_bgr.shape[1])
+    red_ratio = cv2.countNonZero(mask_red) / total
+    green_ratio = cv2.countNonZero(mask_green) / total
+
+    if red_ratio >= float(min_ratio) and red_ratio > green_ratio * float(dominance):
+        return "rouge", 0, red_ratio, green_ratio
+
+    if green_ratio >= float(min_ratio) and green_ratio > red_ratio * float(dominance):
+        return "vert", 1, red_ratio, green_ratio
+
+    return "inconnu", int(unknown_value), red_ratio, green_ratio
+
+
+def analyze_walls(image_bgr, band_ratio=0.30, min_ratio=0.03,
+                  dominance=1.15, unknown_value=-1):
+    """
+    Analyse une bande horizontale centrale et decoupe en 3 zones.
+    Retourne un dictionnaire avec les couleurs et bits [gauche, centre, droite].
+    """
+    if image_bgr is None or image_bgr.size == 0:
+        return None
+
+    h, w, _ = image_bgr.shape
+    out = image_bgr.copy()
+
+    band_h = max(1, int(h * float(band_ratio)))
+    y1 = max(0, (h - band_h) // 2)
+    y2 = min(h, y1 + band_h)
+    band = image_bgr[y1:y2, :].copy()
+
+    third = max(1, w // 3)
+    rois = [
+        band[:, 0:third],
+        band[:, third:2 * third],
+        band[:, 2 * third:w],
+    ]
+
+    colors = []
+    values = []
+    stats = []
+
+    for roi in rois:
+        color_name, bit_value, red_ratio, green_ratio = detect_color_hsv(
+            roi,
+            min_ratio=min_ratio,
+            dominance=dominance,
+            unknown_value=unknown_value,
+        )
+        colors.append(color_name)
+        values.append(bit_value)
+        stats.append((red_ratio, green_ratio))
+
+    # Annotation visuelle utile pour debug local.
+    cv2.rectangle(out, (0, y1), (w - 1, y2 - 1), (255, 255, 255), 2)
+    cv2.line(out, (third, y1), (third, y2), (255, 255, 255), 2)
+    cv2.line(out, (2 * third, y1), (2 * third, y2), (255, 255, 255), 2)
+
+    labels = ["G", "C", "D"]
+    for i, name in enumerate(colors):
+        x_text = 10 + i * third
+        r_ratio, g_ratio = stats[i]
+        cv2.putText(out, f"{labels[i]}: {name} -> {values[i]}", (x_text, max(25, y1 - 30)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        cv2.putText(out, f"R={r_ratio:.2f} V={g_ratio:.2f}", (x_text, max(50, y1 - 5)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+    cv2.putText(out, f"bits={values}", (10, h - 20), cv2.FONT_HERSHEY_SIMPLEX,
+                0.7, (0, 255, 255), 2)
+
+    return {
+        "annotated": out,
+        "colors": colors,
+        "value": values,
+    }
+
+
+def check_camera_direction(values, direction=0, unknown_value=-1):
+    """
+    Verifie le sens de circulation via les couleurs mur gauche/droite.
+
+    Convention:
+    - rouge -> 0
+    - vert -> 1
+    - inconnu -> unknown_value
+
+    direction=0  => gauche rouge, droite verte
+    direction=1  => gauche verte, droite rouge
+    """
+    if values is None or len(values) < 3:
+        return False
+
+    left = values[0]
+    right = values[2]
+
+    if left == unknown_value or right == unknown_value:
+        return False
+
+    expected_left = int(direction)
+    expected_right = 1 - expected_left
+    return left == expected_left and right == expected_right
 
 # =========================
 # Conversion différentiel → Ackermann

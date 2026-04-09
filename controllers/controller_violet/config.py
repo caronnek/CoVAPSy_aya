@@ -41,8 +41,24 @@ W_EMPATTEMENT_M        = 0.250  # empattement du modele utilise par la conversio
 LIDAR_DMAX_MM          = 3000.0 # distance max de normalisation lidar
 VITESSE_AUTO_MIN_M_S   = 0.1    # borne basse de la vitesse issue du reseau
 VITESSE_AUTO_MAX_M_S   = 0.6   # borne haute en conduite autonome reelle (augmenter progressivement)
+AUTO_DEBUG             = True   # active les prints debug de calculer_commande_auto
 
 BOUCLE_PERIODE_S       = 0.01   # période de la boucle de contrôle (10 ms)
+
+# ============================================================
+# CAMERA (verification du sens via couleur des murs)
+# ============================================================
+CAMERA_ACTIVE                = True    # False pour desactiver completement la camera
+CAMERA_WIDTH                 = 640
+CAMERA_HEIGHT                = 480
+CAMERA_FRAMERATE             = 30
+CAMERA_SHOW_WINDOW           = False   # True si ecran local, False en SSH/headless
+CAMERA_BAND_RATIO            = 0.30    # portion centrale analysee
+CAMERA_MIN_RATIO             = 0.03    # proportion minimale de pixels de couleur
+CAMERA_DOMINANCE             = 1.15    # ratio min entre couleur gagnante et perdante
+CAMERA_UNKNOWN_VALUE         = -1
+CAMERA_DIRECTION_EXPECTED    = 0       # 0: gauche rouge/droite verte ; 1: inverse
+CAMERA_CONFIRM_STEPS         = 3       # nb de validations consecutives avant retour NAVIGATION
 
 # ============================================================
 # SECURITE ANTI-COLLISION (front)
@@ -59,9 +75,12 @@ SECURITE_VITESSE_INCERTAINE  = 0.05    # vitesse max si front non fiable (peu de
 SEUIL_FRONT_BLOCAGE_MM       = 500.0   # passage en mode blocage si obstacle proche
 SEUIL_FRONT_DEGAGEMENT_MM    = 1500.0  # seuil de front libre pour sortir des manoeuvres
 SEUIL_ARRIERE_DEGAGEMENT_MM  = 300.0   # stop recul si obstacle arriere proche
+SEUIL_BLOCAGE_PERSIST_STEPS  = 5       # nb d'echecs avant autoriser TURN_RIGHT
 ANGLE_RECUL_FIXE_DEG         = 15.0    # angle fixe pour manoeuvres gauche/droite
 VITESSE_BLOCAGE_M_S          = 0.5     # vitesse de manoeuvre en mode blocage
 BLOCAGE_ACTION_DURATION_S    = 1.0     # duree max d'une action BACKWARD/TURN
+LIDAR_REAR_WINDOW_DEG        = 15      # fenetre de mesure arriere autour de 180 deg
+LIDAR_REAR_MIN_POINTS        = 4       # nb mini de points valides pour juger l'arriere fiable
 
 # ============================================================
 # FILTRAGE DES COMMANDES (stabilisation)

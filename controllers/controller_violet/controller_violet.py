@@ -15,16 +15,16 @@ import numpy as np
 import cv2
 
 from commun import filtre_moyenneur, lire_point_lidar, normaliser_distance, differentiel_vers_ackermann, calculer_commande_auto
-
+import config
 # =========================
 # Paramètres véhicule
 # =========================
-maxSpeed = 50       # km/h
-maxangle_degre = 18
+maxSpeed = config.VITESSE_AUTO_MAX_M_S * 3.6       # km/h
+maxangle_degre = config.ANGLE_DEGRE_MAX                      # degrés
 
 # --- Paramètres géométriques du TT-02 (à ajuster selon le modèle Webots) ---
-L_entraxe = 0.180  # m  — distance entre roues gauche/droite (voie)
-W_empattement = 0.250  # m  — distance entre essieu avant et arrière
+L_entraxe = config.L_ENTRAXE_M  # m  — distance entre roues gauche/droite (voie)
+W_empattement = config.W_EMPATTEMENT_M  # m  — distance entre essieu avant et arrière
 
 # =========================
 # Fonctions véhicule propre à Weebots
@@ -35,8 +35,8 @@ def set_vitesse_m_s(vitesse_m_s):
     speed = vitesse_m_s * 3.6
     if speed > maxSpeed:
         speed = maxSpeed
-    if speed < 0:
-        speed = 0
+    if speed < -maxSpeed:
+        speed = -maxSpeed
     driver.setCruisingSpeed(speed)
 
 def set_direction_degre(angle_degre):
@@ -47,9 +47,6 @@ def set_direction_degre(angle_degre):
 
     angle_rad = -angle_degre * np.pi / 180.0
     driver.setSteeringAngle(angle_rad)
-
-def recule(driver):
-    driver.setCruisingSpeed(-1)
     
 # =========================
 # Fonctions d'execution pour Weebots

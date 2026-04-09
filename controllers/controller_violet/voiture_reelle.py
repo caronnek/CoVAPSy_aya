@@ -29,10 +29,10 @@ import importlib
 
 from commun import (
     filtre_moyenneur,
-    calculer_commande_auto,
-    distance_secteur_lidar,
     analyze_walls,
-    check_camera_direction,
+    calculer_commande_automate,
+    reset_automate,
+    get_automate_state,
 )
 
 import config
@@ -53,24 +53,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ============================================================
-# Etats FSM
-# ============================================================
-NAVIGATION = 0
-BLOCAGE = 1
-
-BACKWARD = 0
-CAMERA_CHECKING = 1
-TURN_LEFT = 2
-TURN_RIGHT = 3
-
-ETAT_NAMES = {NAVIGATION: "NAVIGATION", BLOCAGE: "BLOCAGE"}
-SOUS_ETAT_NAMES = {
-    BACKWARD: "BACKWARD",
-    CAMERA_CHECKING: "CAMERA_CHECKING",
-    TURN_LEFT: "TURN_LEFT",
-    TURN_RIGHT: "TURN_RIGHT",
-}
+ETAT_NAMES = {0: "NAVIGATION", 1: "BLOCAGE"}
+SOUS_ETAT_NAMES = {0: "BACKWARD", 1: "CAMERA_CHECKING", 2: "TURN_LEFT", 3: "TURN_RIGHT"}
 
 
 def initialiser_camera():
@@ -210,22 +194,9 @@ def main():
     camera, show_camera_window = initialiser_camera()
 
     # =========================
-    # Initialisation FSM
+    # Initialisation automate
     # =========================
-    etat = NAVIGATION
-    sous_etat = BACKWARD
-    action_counter = 0
-    counter_camera_confirm = 0
-    counter_etat_backward = 0
-    flag_turn_right = False
-
-    action_steps = max(
-        1,
-        int(
-            float(config.BLOCAGE_ACTION_DURATION_S)
-            / max(1e-4, float(config.BOUCLE_PERIODE_S))
-        ),
-    )
+    reset_automate()
 
     try:
         while not stop_event.is_set():
@@ -267,19 +238,16 @@ def main():
             # Mode manuel / arret
             # =========================
             if not mode_auto_event.is_set():
-                etat = NAVIGATION
-                sous_etat = BACKWARD
-                action_counter = 0
-                counter_camera_confirm = 0
-                counter_etat_backward = 0
-                flag_turn_right = False
+                reset_automate()
                 time.sleep(config.BOUCLE_PERIODE_S)
                 continue
 
             # =========================
-            # Commande auto de base (reseau)
+            # Commande auto finale (reseau + automate)
             # =========================
-            v_cmd, angle_cmd = calculer_commande_auto(
+            wall_values = wall_info["value"] if wall_info else None
+
+            v_cmd, angle_cmd = calculer_commande_automate(
                 tableau_lidar_filtre,
                 L_entraxe=config.L_ENTRAXE_M,
                 W_empattement=config.W_EMPATTEMENT_M,
@@ -287,170 +255,50 @@ def main():
                 dmax=config.LIDAR_DMAX_MM,
                 v_min=config.VITESSE_AUTO_MIN_M_S,
                 v_max=config.VITESSE_AUTO_MAX_M_S,
+                wall_values=wall_values,
+                sec_front_fenetre_deg=config.SECURITE_FRONT_FENETRE_DEG,
+                sec_front_min_points=config.SECURITE_FRONT_MIN_POINTS,
+                sec_vitesse_incertaine=config.SECURITE_VITESSE_INCERTAINE,
+                sec_front_stop_mm=config.SECURITE_FRONT_STOP_MM,
+                sec_front_ralenti_mm=config.SECURITE_FRONT_RALENTI_MM,
+                seuil_front_blocage_mm=config.SEUIL_FRONT_BLOCAGE_MM,
+                seuil_front_degagement_mm=config.SEUIL_FRONT_DEGAGEMENT_MM,
+                seuil_arriere_degagement_mm=config.SEUIL_ARRIERE_DEGAGEMENT_MM,
+                lidar_rear_window_deg=config.LIDAR_REAR_WINDOW_DEG,
+                lidar_rear_min_points=config.LIDAR_REAR_MIN_POINTS,
+                blocage_action_duration_s=config.BLOCAGE_ACTION_DURATION_S,
+                boucle_periode_s=config.BOUCLE_PERIODE_S,
+                vitesse_blocage_m_s=config.VITESSE_BLOCAGE_M_S,
+                angle_recul_fixe_deg=config.ANGLE_RECUL_FIXE_DEG,
+                seuil_blocage_persist_steps=config.SEUIL_BLOCAGE_PERSIST_STEPS,
+                camera_direction_expected=config.CAMERA_DIRECTION_EXPECTED,
+                camera_unknown_value=config.CAMERA_UNKNOWN_VALUE,
+                camera_confirm_steps=config.CAMERA_CONFIRM_STEPS,
                 debug=bool(config.AUTO_DEBUG),
             )
 
-            # =========================
-            # Distances robustes front/arriere
-            # =========================
-            d_front = distance_secteur_lidar(
-                tableau_lidar_filtre,
-                centre_deg=0,
-                demi_fenetre_deg=int(config.SECURITE_FRONT_FENETRE_DEG),
-                dmax=float(config.LIDAR_DMAX_MM),
-                min_points=int(config.SECURITE_FRONT_MIN_POINTS),
-                quantile=20,
-            )
-            d_rear = distance_secteur_lidar(
-                tableau_lidar_filtre,
-                centre_deg=180,
-                demi_fenetre_deg=int(config.LIDAR_REAR_WINDOW_DEG),
-                dmax=float(config.LIDAR_DMAX_MM),
-                min_points=int(config.LIDAR_REAR_MIN_POINTS),
-                quantile=20,
-            )
-
-            seuil_blocage_effectif = max(
-                float(config.SEUIL_FRONT_BLOCAGE_MM),
-                float(config.SECURITE_FRONT_STOP_MM),
-            )
-            front_blocked = d_front is not None and d_front <= seuil_blocage_effectif
-            front_clear = d_front is not None and d_front >= float(config.SEUIL_FRONT_DEGAGEMENT_MM)
-
-            # =========================
-            # Anti-collision frontale (limite vitesse)
-            # =========================
-            v_safe = float(v_cmd)
-            if d_front is None:
-                v_safe = min(v_safe, float(config.SECURITE_VITESSE_INCERTAINE))
-            else:
-                stop_mm = float(config.SECURITE_FRONT_STOP_MM)
-                slow_mm = float(config.SECURITE_FRONT_RALENTI_MM)
-
-                if d_front <= stop_mm:
-                    v_safe = 0.0
-                elif d_front < slow_mm:
-                    ratio = (d_front - stop_mm) / max(1.0, slow_mm - stop_mm)
-                    v_lim = max(0.0, min(1.0, ratio)) * float(config.VITESSE_AUTO_MAX_M_S)
-                    v_safe = min(v_safe, v_lim)
-
-            v_safe = max(0.0, min(float(config.VITESSE_AUTO_MAX_M_S), v_safe))
-
-            # =========================
-            # FSM (navigation / deblocage)
-            # =========================
-            match etat:
-                case 0:
-                    if front_blocked:
-                        etat = BLOCAGE
-                        sous_etat = BACKWARD
-                        action_counter = 0
-                        counter_camera_confirm = 0
-                    else:
-                        act.set_direction_degre(float(angle_cmd))
-                        act.set_vitesse_m_s(v_safe)
-
-                case 1:
-                    match sous_etat:
-                        case 0:
-                            rear_too_close = (
-                                d_rear is not None
-                                and d_rear <= float(config.SEUIL_ARRIERE_DEGAGEMENT_MM)
-                            )
-                            if action_counter >= action_steps or rear_too_close:
-                                act.set_direction_degre(0.0)
-                                act.set_vitesse_m_s(0.0)
-                                action_counter = 0
-                                if flag_turn_right and counter_etat_backward > int(config.SEUIL_BLOCAGE_PERSIST_STEPS):
-                                    sous_etat = TURN_RIGHT
-                                else:
-                                    sous_etat = TURN_LEFT
-                            else:
-                                act.set_direction_degre(0.0)
-                                act.set_vitesse_m_s(-abs(float(config.VITESSE_BLOCAGE_M_S)))
-                                action_counter += 1
-
-                        case 2:
-                            if action_counter >= action_steps:
-                                act.set_direction_degre(0.0)
-                                act.set_vitesse_m_s(0.0)
-                                action_counter = 0
-                                if front_clear:
-                                    counter_camera_confirm = 0
-                                    sous_etat = CAMERA_CHECKING
-                                else:
-                                    sous_etat = BACKWARD
-                                    counter_etat_backward += 1
-                            else:
-                                act.set_direction_degre(float(config.ANGLE_RECUL_FIXE_DEG))
-                                act.set_vitesse_m_s(abs(float(config.VITESSE_BLOCAGE_M_S)))
-                                action_counter += 1
-
-                        case 1:
-                            act.set_direction_degre(0.0)
-                            act.set_vitesse_m_s(0.0)
-
-                            values = wall_info["value"] if wall_info else None
-                            camera_ok = check_camera_direction(
-                                values,
-                                direction=int(config.CAMERA_DIRECTION_EXPECTED),
-                                unknown_value=int(config.CAMERA_UNKNOWN_VALUE),
-                            )
-
-                            if camera_ok:
-                                counter_camera_confirm += 1
-                            else:
-                                counter_camera_confirm = 0
-
-                            action_counter += 1
-                            if counter_camera_confirm >= int(config.CAMERA_CONFIRM_STEPS):
-                                etat = NAVIGATION
-                                sous_etat = BACKWARD
-                                action_counter = 0
-                                flag_turn_right = False
-                                counter_etat_backward = 0
-                                counter_camera_confirm = 0
-                            elif action_counter >= int(config.CAMERA_CONFIRM_STEPS):
-                                etat = BLOCAGE
-                                sous_etat = BACKWARD
-                                action_counter = 0
-                                flag_turn_right = True
-
-                        case 3:
-                            if action_counter >= action_steps:
-                                act.set_direction_degre(0.0)
-                                act.set_vitesse_m_s(0.0)
-                                action_counter = 0
-                                if front_clear:
-                                    counter_camera_confirm = 0
-                                    sous_etat = CAMERA_CHECKING
-                                else:
-                                    sous_etat = BACKWARD
-                            else:
-                                act.set_direction_degre(-float(config.ANGLE_RECUL_FIXE_DEG))
-                                act.set_vitesse_m_s(abs(float(config.VITESSE_BLOCAGE_M_S)))
-                                action_counter += 1
-
-                        case _:
-                            sous_etat = BACKWARD
-
-                case _:
-                    etat = NAVIGATION
-                    sous_etat = BACKWARD
+            act.set_direction_degre(float(angle_cmd))
+            act.set_vitesse_m_s(float(v_cmd))
 
             if bool(config.DEBUG_ACTIONNEURS):
-                ss = SOUS_ETAT_NAMES[sous_etat] if etat == BLOCAGE else "-"
-                front_txt = "NA" if d_front is None else f"{d_front:.0f}"
-                rear_txt = "NA" if d_rear is None else f"{d_rear:.0f}"
+                fsm = get_automate_state()
+                etat = int(fsm.get("etat", 0))
+                sous_etat = int(fsm.get("sous_etat", 0))
+                d_front = fsm.get("last_front_mm", None)
+                d_rear = fsm.get("last_rear_mm", None)
+
+                ss = SOUS_ETAT_NAMES.get(sous_etat, "?") if etat == 1 else "-"
+                front_txt = "NA" if d_front is None else f"{float(d_front):.0f}"
+                rear_txt = "NA" if d_rear is None else f"{float(d_rear):.0f}"
                 logger.info(
                     "FSM [%s|%s] v=%.2f ang=%.1f dF=%s dR=%s back=%d",
                     ETAT_NAMES.get(etat, "?"),
                     ss,
-                    v_safe,
+                    float(v_cmd),
                     float(angle_cmd),
                     front_txt,
                     rear_txt,
-                    counter_etat_backward,
+                    int(fsm.get("counter_etat_backward", 0)),
                 )
 
             time.sleep(config.BOUCLE_PERIODE_S)

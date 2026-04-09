@@ -361,3 +361,243 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
 
     return v_cmd, angle_cmd
 
+
+# =========================
+# Automate navigation/blocage (etat interne)
+# =========================
+_NAVIGATION = 0
+_BLOCAGE = 1
+
+_BACKWARD = 0
+_CAMERA_CHECKING = 1
+_TURN_LEFT = 2
+_TURN_RIGHT = 3
+
+_fsm = {
+    "etat": _NAVIGATION,
+    "sous_etat": _BACKWARD,
+    "action_counter": 0,
+    "counter_camera_confirm": 0,
+    "counter_etat_backward": 0,
+    "flag_turn_right": False,
+    "last_front_mm": None,
+    "last_rear_mm": None,
+}
+
+
+def reset_automate():
+    """Reinitialise l'automate (utiliser lors du passage en mode manuel)."""
+    _fsm["etat"] = _NAVIGATION
+    _fsm["sous_etat"] = _BACKWARD
+    _fsm["action_counter"] = 0
+    _fsm["counter_camera_confirm"] = 0
+    _fsm["counter_etat_backward"] = 0
+    _fsm["flag_turn_right"] = False
+    _fsm["last_front_mm"] = None
+    _fsm["last_rear_mm"] = None
+
+
+def get_automate_state():
+    """Retourne une copie de l'etat interne pour debug/affichage."""
+    return dict(_fsm)
+
+
+def calculer_commande_automate(
+    tableau_lidar_filtre,
+    L_entraxe,
+    W_empattement,
+    maxangle_degre,
+    dmax=3000.0,
+    v_min=0.4,
+    v_max=1.2,
+    wall_values=None,
+    sec_front_fenetre_deg=15,
+    sec_front_min_points=5,
+    sec_vitesse_incertaine=0.05,
+    sec_front_stop_mm=700.0,
+    sec_front_ralenti_mm=1500.0,
+    seuil_front_blocage_mm=500.0,
+    seuil_front_degagement_mm=1500.0,
+    seuil_arriere_degagement_mm=300.0,
+    lidar_rear_window_deg=15,
+    lidar_rear_min_points=4,
+    blocage_action_duration_s=1.0,
+    boucle_periode_s=0.01,
+    vitesse_blocage_m_s=0.5,
+    angle_recul_fixe_deg=15.0,
+    seuil_blocage_persist_steps=5,
+    camera_direction_expected=0,
+    camera_unknown_value=-1,
+    camera_confirm_steps=3,
+    debug=False,
+):
+    """
+    Automate complet: navigation + anti-collision + deblocage + verification camera.
+
+    Retourne toujours:
+        v_cmd, angle_cmd
+    """
+    v_base, angle_base = calculer_commande_auto(
+        tableau_lidar_filtre,
+        L_entraxe=L_entraxe,
+        W_empattement=W_empattement,
+        maxangle_degre=maxangle_degre,
+        dmax=dmax,
+        v_min=v_min,
+        v_max=v_max,
+        debug=debug,
+    )
+
+    d_front = distance_secteur_lidar(
+        tableau_lidar_filtre,
+        centre_deg=0,
+        demi_fenetre_deg=int(sec_front_fenetre_deg),
+        dmax=float(dmax),
+        min_points=int(sec_front_min_points),
+        quantile=20,
+    )
+    d_rear = distance_secteur_lidar(
+        tableau_lidar_filtre,
+        centre_deg=180,
+        demi_fenetre_deg=int(lidar_rear_window_deg),
+        dmax=float(dmax),
+        min_points=int(lidar_rear_min_points),
+        quantile=20,
+    )
+
+    _fsm["last_front_mm"] = d_front
+    _fsm["last_rear_mm"] = d_rear
+
+    seuil_blocage_effectif = max(float(seuil_front_blocage_mm), float(sec_front_stop_mm))
+    front_blocked = d_front is not None and d_front <= seuil_blocage_effectif
+    front_clear = d_front is not None and d_front >= float(seuil_front_degagement_mm)
+
+    # Securite frontale appliquee seulement en navigation.
+    v_safe = float(v_base)
+    if d_front is None:
+        v_safe = min(v_safe, float(sec_vitesse_incertaine))
+    else:
+        stop_mm = float(sec_front_stop_mm)
+        slow_mm = float(sec_front_ralenti_mm)
+        if d_front <= stop_mm:
+            v_safe = 0.0
+        elif d_front < slow_mm:
+            ratio = (d_front - stop_mm) / max(1.0, slow_mm - stop_mm)
+            v_lim = max(0.0, min(1.0, ratio)) * float(v_max)
+            v_safe = min(v_safe, v_lim)
+
+    v_safe = max(0.0, min(float(v_max), v_safe))
+
+    action_steps = max(
+        1,
+        int(float(blocage_action_duration_s) / max(1e-4, float(boucle_periode_s))),
+    )
+
+    v_out = 0.0
+    angle_out = 0.0
+
+    match _fsm["etat"]:
+        case 0:
+            if front_blocked:
+                _fsm["etat"] = _BLOCAGE
+                _fsm["sous_etat"] = _BACKWARD
+                _fsm["action_counter"] = 0
+                _fsm["counter_camera_confirm"] = 0
+                v_out = 0.0
+                angle_out = 0.0
+            else:
+                v_out = v_safe
+                angle_out = float(angle_base)
+
+        case 1:
+            match _fsm["sous_etat"]:
+                case 0:
+                    rear_too_close = (
+                        d_rear is not None
+                        and d_rear <= float(seuil_arriere_degagement_mm)
+                    )
+                    if _fsm["action_counter"] >= action_steps or rear_too_close:
+                        _fsm["action_counter"] = 0
+                        if _fsm["flag_turn_right"] and _fsm["counter_etat_backward"] > int(seuil_blocage_persist_steps):
+                            _fsm["sous_etat"] = _TURN_RIGHT
+                        else:
+                            _fsm["sous_etat"] = _TURN_LEFT
+                        v_out = 0.0
+                        angle_out = 0.0
+                    else:
+                        _fsm["action_counter"] += 1
+                        v_out = -abs(float(vitesse_blocage_m_s))
+                        angle_out = 0.0
+
+                case 2:
+                    if _fsm["action_counter"] >= action_steps:
+                        _fsm["action_counter"] = 0
+                        if front_clear:
+                            _fsm["counter_camera_confirm"] = 0
+                            _fsm["sous_etat"] = _CAMERA_CHECKING
+                        else:
+                            _fsm["sous_etat"] = _BACKWARD
+                            _fsm["counter_etat_backward"] += 1
+                        v_out = 0.0
+                        angle_out = 0.0
+                    else:
+                        _fsm["action_counter"] += 1
+                        v_out = abs(float(vitesse_blocage_m_s))
+                        angle_out = float(angle_recul_fixe_deg)
+
+                case 1:
+                    camera_ok = check_camera_direction(
+                        wall_values,
+                        direction=int(camera_direction_expected),
+                        unknown_value=int(camera_unknown_value),
+                    )
+
+                    if camera_ok:
+                        _fsm["counter_camera_confirm"] += 1
+                    else:
+                        _fsm["counter_camera_confirm"] = 0
+
+                    _fsm["action_counter"] += 1
+                    if _fsm["counter_camera_confirm"] >= int(camera_confirm_steps):
+                        _fsm["etat"] = _NAVIGATION
+                        _fsm["sous_etat"] = _BACKWARD
+                        _fsm["action_counter"] = 0
+                        _fsm["flag_turn_right"] = False
+                        _fsm["counter_etat_backward"] = 0
+                        _fsm["counter_camera_confirm"] = 0
+                    elif _fsm["action_counter"] >= int(camera_confirm_steps):
+                        _fsm["etat"] = _BLOCAGE
+                        _fsm["sous_etat"] = _BACKWARD
+                        _fsm["action_counter"] = 0
+                        _fsm["flag_turn_right"] = True
+
+                    v_out = 0.0
+                    angle_out = 0.0
+
+                case 3:
+                    if _fsm["action_counter"] >= action_steps:
+                        _fsm["action_counter"] = 0
+                        if front_clear:
+                            _fsm["counter_camera_confirm"] = 0
+                            _fsm["sous_etat"] = _CAMERA_CHECKING
+                        else:
+                            _fsm["sous_etat"] = _BACKWARD
+                        v_out = 0.0
+                        angle_out = 0.0
+                    else:
+                        _fsm["action_counter"] += 1
+                        v_out = abs(float(vitesse_blocage_m_s))
+                        angle_out = -float(angle_recul_fixe_deg)
+
+                case _:
+                    _fsm["sous_etat"] = _BACKWARD
+                    v_out = 0.0
+                    angle_out = 0.0
+
+        case _:
+            reset_automate()
+            v_out = 0.0
+            angle_out = 0.0
+
+    return float(v_out), float(angle_out)
+

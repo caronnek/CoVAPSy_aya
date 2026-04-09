@@ -80,7 +80,7 @@ def initialiser_camera():
         camera_obj | None
         show_window (bool)
     """
-    if not bool(getattr(config, "CAMERA_ACTIVE", True)):
+    if not bool(config.CAMERA_ACTIVE):
         logger.info("Camera desactivee par config")
         return None, False
 
@@ -94,14 +94,14 @@ def initialiser_camera():
         logger.warning("Picamera2 indisponible: verification camera desactivee")
         return None, False
 
-    show_window = bool(getattr(config, "CAMERA_SHOW_WINDOW", False)) and (
+    show_window = bool(config.CAMERA_SHOW_WINDOW) and (
         ("DISPLAY" in os.environ) or (os.name == "nt")
     )
 
     try:
         camera = picamera2_cls()
-        width = int(getattr(config, "CAMERA_WIDTH", 640))
-        height = int(getattr(config, "CAMERA_HEIGHT", 480))
+        width = int(config.CAMERA_WIDTH)
+        height = int(config.CAMERA_HEIGHT)
 
         cfg = camera.create_preview_configuration(
             main={"size": (width, height), "format": "RGB888"},
@@ -222,8 +222,8 @@ def main():
     action_steps = max(
         1,
         int(
-            float(getattr(config, "BLOCAGE_ACTION_DURATION_S", 1.0))
-            / max(1e-4, float(getattr(config, "BOUCLE_PERIODE_S", 0.01)))
+            float(config.BLOCAGE_ACTION_DURATION_S)
+            / max(1e-4, float(config.BOUCLE_PERIODE_S))
         ),
     )
 
@@ -247,10 +247,10 @@ def main():
                     frame_bgr = frame_rgb[:, :, ::-1].copy()
                     wall_info = analyze_walls(
                         frame_bgr,
-                        band_ratio=float(getattr(config, "CAMERA_BAND_RATIO", 0.30)),
-                        min_ratio=float(getattr(config, "CAMERA_MIN_RATIO", 0.03)),
-                        dominance=float(getattr(config, "CAMERA_DOMINANCE", 1.15)),
-                        unknown_value=int(getattr(config, "CAMERA_UNKNOWN_VALUE", -1)),
+                        band_ratio=float(config.CAMERA_BAND_RATIO),
+                        min_ratio=float(config.CAMERA_MIN_RATIO),
+                        dominance=float(config.CAMERA_DOMINANCE),
+                        unknown_value=int(config.CAMERA_UNKNOWN_VALUE),
                     )
 
                     if show_camera_window and wall_info is not None:
@@ -287,7 +287,7 @@ def main():
                 dmax=config.LIDAR_DMAX_MM,
                 v_min=config.VITESSE_AUTO_MIN_M_S,
                 v_max=config.VITESSE_AUTO_MAX_M_S,
-                debug=bool(getattr(config, "AUTO_DEBUG", True)),
+                debug=bool(config.AUTO_DEBUG),
             )
 
             # =========================
@@ -296,21 +296,25 @@ def main():
             d_front = distance_secteur_lidar(
                 tableau_lidar_filtre,
                 centre_deg=0,
-                demi_fenetre_deg=int(getattr(config, "SECURITE_FRONT_FENETRE_DEG", 15)),
+                demi_fenetre_deg=int(config.SECURITE_FRONT_FENETRE_DEG),
                 dmax=float(config.LIDAR_DMAX_MM),
-                min_points=int(getattr(config, "SECURITE_FRONT_MIN_POINTS", 5)),
+                min_points=int(config.SECURITE_FRONT_MIN_POINTS),
                 quantile=20,
             )
             d_rear = distance_secteur_lidar(
                 tableau_lidar_filtre,
                 centre_deg=180,
-                demi_fenetre_deg=int(getattr(config, "LIDAR_REAR_WINDOW_DEG", 15)),
+                demi_fenetre_deg=int(config.LIDAR_REAR_WINDOW_DEG),
                 dmax=float(config.LIDAR_DMAX_MM),
-                min_points=int(getattr(config, "LIDAR_REAR_MIN_POINTS", 4)),
+                min_points=int(config.LIDAR_REAR_MIN_POINTS),
                 quantile=20,
             )
 
-            front_blocked = d_front is not None and d_front <= float(config.SEUIL_FRONT_BLOCAGE_MM)
+            seuil_blocage_effectif = max(
+                float(config.SEUIL_FRONT_BLOCAGE_MM),
+                float(config.SECURITE_FRONT_STOP_MM),
+            )
+            front_blocked = d_front is not None and d_front <= seuil_blocage_effectif
             front_clear = d_front is not None and d_front >= float(config.SEUIL_FRONT_DEGAGEMENT_MM)
 
             # =========================
@@ -318,10 +322,10 @@ def main():
             # =========================
             v_safe = float(v_cmd)
             if d_front is None:
-                v_safe = min(v_safe, float(getattr(config, "SECURITE_VITESSE_INCERTAINE", 0.05)))
+                v_safe = min(v_safe, float(config.SECURITE_VITESSE_INCERTAINE))
             else:
-                stop_mm = float(getattr(config, "SECURITE_FRONT_STOP_MM", 700.0))
-                slow_mm = float(getattr(config, "SECURITE_FRONT_RALENTI_MM", 1500.0))
+                stop_mm = float(config.SECURITE_FRONT_STOP_MM)
+                slow_mm = float(config.SECURITE_FRONT_RALENTI_MM)
 
                 if d_front <= stop_mm:
                     v_safe = 0.0
@@ -357,7 +361,7 @@ def main():
                                 act.set_direction_degre(0.0)
                                 act.set_vitesse_m_s(0.0)
                                 action_counter = 0
-                                if flag_turn_right and counter_etat_backward > int(getattr(config, "SEUIL_BLOCAGE_PERSIST_STEPS", 5)):
+                                if flag_turn_right and counter_etat_backward > int(config.SEUIL_BLOCAGE_PERSIST_STEPS):
                                     sous_etat = TURN_RIGHT
                                 else:
                                     sous_etat = TURN_LEFT
@@ -389,8 +393,8 @@ def main():
                             values = wall_info["value"] if wall_info else None
                             camera_ok = check_camera_direction(
                                 values,
-                                direction=int(getattr(config, "CAMERA_DIRECTION_EXPECTED", 0)),
-                                unknown_value=int(getattr(config, "CAMERA_UNKNOWN_VALUE", -1)),
+                                direction=int(config.CAMERA_DIRECTION_EXPECTED),
+                                unknown_value=int(config.CAMERA_UNKNOWN_VALUE),
                             )
 
                             if camera_ok:
@@ -399,14 +403,14 @@ def main():
                                 counter_camera_confirm = 0
 
                             action_counter += 1
-                            if counter_camera_confirm >= int(getattr(config, "CAMERA_CONFIRM_STEPS", 3)):
+                            if counter_camera_confirm >= int(config.CAMERA_CONFIRM_STEPS):
                                 etat = NAVIGATION
                                 sous_etat = BACKWARD
                                 action_counter = 0
                                 flag_turn_right = False
                                 counter_etat_backward = 0
                                 counter_camera_confirm = 0
-                            elif action_counter >= int(getattr(config, "CAMERA_CONFIRM_STEPS", 3)):
+                            elif action_counter >= int(config.CAMERA_CONFIRM_STEPS):
                                 etat = BLOCAGE
                                 sous_etat = BACKWARD
                                 action_counter = 0
@@ -434,7 +438,7 @@ def main():
                     etat = NAVIGATION
                     sous_etat = BACKWARD
 
-            if bool(getattr(config, "DEBUG_ACTIONNEURS", False)):
+            if bool(config.DEBUG_ACTIONNEURS):
                 ss = SOUS_ETAT_NAMES[sous_etat] if etat == BLOCAGE else "-"
                 front_txt = "NA" if d_front is None else f"{d_front:.0f}"
                 rear_txt = "NA" if d_rear is None else f"{d_rear:.0f}"

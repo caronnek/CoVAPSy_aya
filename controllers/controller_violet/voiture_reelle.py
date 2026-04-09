@@ -274,6 +274,13 @@ def main():
                 camera_direction_expected=config.CAMERA_DIRECTION_EXPECTED,
                 camera_unknown_value=config.CAMERA_UNKNOWN_VALUE,
                 camera_confirm_steps=config.CAMERA_CONFIRM_STEPS,
+                avoid_front_diag_deg=config.AVOID_FRONT_DIAG_DEG,
+                avoid_side_deg=config.AVOID_SIDE_DEG,
+                avoid_sector_half_deg=config.AVOID_SECTOR_HALF_DEG,
+                avoid_narrow_mm=config.AVOID_NARROW_MM,
+                obstacle_window_deg=config.OBSTACLE_WINDOW_DEG,
+                obstacle_cluster_gap_mm=config.OBSTACLE_CLUSTER_GAP_MM,
+                obstacle_dynamic_speed_m_s=config.OBSTACLE_DYNAMIC_SPEED_M_S,
                 debug=bool(config.AUTO_DEBUG),
             )
 
@@ -286,12 +293,17 @@ def main():
                 sous_etat = int(fsm.get("sous_etat", 0))
                 d_front = fsm.get("last_front_mm", None)
                 d_rear = fsm.get("last_rear_mm", None)
+                obj_kind = fsm.get("last_obj_kind", "unknown")
+                obj_speed = float(fsm.get("last_obj_speed_m_s", 0.0))
+                s_left = float(fsm.get("score_left", 0.0))
+                s_right = float(fsm.get("score_right", 0.0))
 
                 ss = SOUS_ETAT_NAMES.get(sous_etat, "?") if etat == 1 else "-"
                 front_txt = "NA" if d_front is None else f"{float(d_front):.0f}"
                 rear_txt = "NA" if d_rear is None else f"{float(d_rear):.0f}"
+                wall_txt = "None" if wall_values is None else str(wall_values)
                 logger.info(
-                    "FSM [%s|%s] v=%.2f ang=%.1f dF=%s dR=%s back=%d",
+                    "FSM [%s|%s] v=%.2f ang=%.1f dF=%s dR=%s back=%d obj=%s vrel=%.2f sL=%.2f sR=%.2f walls=%s",
                     ETAT_NAMES.get(etat, "?"),
                     ss,
                     float(v_cmd),
@@ -299,6 +311,11 @@ def main():
                     front_txt,
                     rear_txt,
                     int(fsm.get("counter_etat_backward", 0)),
+                    obj_kind,
+                    obj_speed,
+                    s_left,
+                    s_right,
+                    wall_txt,
                 )
 
             time.sleep(config.BOUCLE_PERIODE_S)

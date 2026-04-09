@@ -382,6 +382,13 @@ _fsm = {
     "flag_turn_right": False,
     "last_front_mm": None,
     "last_rear_mm": None,
+    "front_missing_steps": 0,
+    "last_obj_dist_mm": None,
+    "last_obj_speed_m_s": 0.0,
+    "last_obj_kind": "unknown",
+    "last_obj_side": 0,
+    "score_left": 0.0,
+    "score_right": 0.0,
 }
 
 
@@ -395,11 +402,188 @@ def reset_automate():
     _fsm["flag_turn_right"] = False
     _fsm["last_front_mm"] = None
     _fsm["last_rear_mm"] = None
+    _fsm["front_missing_steps"] = 0
+    _fsm["last_obj_dist_mm"] = None
+    _fsm["last_obj_speed_m_s"] = 0.0
+    _fsm["last_obj_kind"] = "unknown"
+    _fsm["last_obj_side"] = 0
+    _fsm["score_left"] = 0.0
+    _fsm["score_right"] = 0.0
 
 
 def get_automate_state():
     """Retourne une copie de l'etat interne pour debug/affichage."""
     return dict(_fsm)
+
+
+def _distance_front_robuste(tab, centre_deg, demi_fenetre_deg, dmax, min_points):
+    """Distance robuste avec degradation progressive en cas de nuage pauvre."""
+    d = distance_secteur_lidar(
+        tab,
+        centre_deg=centre_deg,
+        demi_fenetre_deg=int(demi_fenetre_deg),
+        dmax=float(dmax),
+        min_points=int(min_points),
+        quantile=20,
+    )
+    if d is not None:
+        return float(d)
+
+    d = distance_secteur_lidar(
+        tab,
+        centre_deg=centre_deg,
+        demi_fenetre_deg=max(3, int(demi_fenetre_deg) // 2),
+        dmax=float(dmax),
+        min_points=max(1, int(min_points) // 3),
+        quantile=35,
+    )
+    if d is not None:
+        return float(d)
+
+    d_point = lire_point_lidar(
+        tab,
+        centre_deg,
+        valeur_defaut=-1.0,
+        fenetre_deg=max(2, int(demi_fenetre_deg) // 2),
+        min_points=1,
+    )
+    if d_point > 0:
+        return float(d_point)
+    return None
+
+
+def _extract_front_clusters(tableau_lidar_filtre, dmax, angle_min=-70, angle_max=70, max_gap_mm=220.0):
+    """Extrait des clusters frontaux de points LiDAR valides."""
+    clusters = []
+    current = []
+
+    for a in range(int(angle_min), int(angle_max) + 1):
+        d = lire_point_lidar(
+            tableau_lidar_filtre,
+            a,
+            valeur_defaut=0.0,
+            fenetre_deg=0,
+            min_points=1,
+        )
+
+        if not (0.0 < float(d) <= float(dmax)):
+            if current:
+                clusters.append(current)
+                current = []
+            continue
+
+        ar = np.deg2rad(a)
+        x = float(d) * float(np.cos(ar))
+        y = float(d) * float(np.sin(ar))
+        point = (a, float(d), x, y)
+
+        if not current:
+            current = [point]
+        else:
+            _, _, x_prev, y_prev = current[-1]
+            gap = float(np.hypot(x - x_prev, y - y_prev))
+            if gap <= float(max_gap_mm):
+                current.append(point)
+            else:
+                clusters.append(current)
+                current = [point]
+
+    if current:
+        clusters.append(current)
+
+    return clusters
+
+
+def _describe_cluster(cluster):
+    """Calcule des features simples pour classer mur / voiture / inconnu."""
+    angles = [p[0] for p in cluster]
+    dists = [p[1] for p in cluster]
+    xs = [p[2] for p in cluster]
+    ys = [p[3] for p in cluster]
+
+    n = len(cluster)
+    min_dist = float(min(dists))
+    width = float(max(ys) - min(ys))
+    depth = float(max(xs) - min(xs))
+    angle_span = float(max(angles) - min(angles))
+    centroid_y = float(np.mean(ys))
+
+    # Heuristique simple et interpretable.
+    kind = "unknown"
+    if n >= 10 and angle_span >= 28.0 and width >= 700.0:
+        kind = "wall"
+    elif n >= 4 and 180.0 <= width <= 850.0 and angle_span <= 30.0:
+        kind = "vehicle"
+
+    side = 0
+    if centroid_y > 40.0:
+        side = 1   # obstacle majoritairement a gauche
+    elif centroid_y < -40.0:
+        side = -1  # obstacle majoritairement a droite
+
+    return {
+        "n": n,
+        "min_dist": min_dist,
+        "width": width,
+        "depth": depth,
+        "angle_span": angle_span,
+        "centroid_y": centroid_y,
+        "kind": kind,
+        "side": side,
+    }
+
+
+def _normalise_dist_score(d_mm, dmax):
+    if d_mm is None:
+        return 0.0
+    return float(np.clip(float(d_mm), 0.0, float(dmax)) / max(1.0, float(dmax)))
+
+
+def _compute_side_scores(tableau_lidar_filtre, dmax, avoid_front_diag_deg, avoid_side_deg,
+                         avoid_sector_half_deg, avoid_narrow_mm):
+    """Calcule des scores gauche/droite pour choisir la manoeuvre."""
+    d_fl = _distance_front_robuste(
+        tableau_lidar_filtre,
+        centre_deg=avoid_front_diag_deg,
+        demi_fenetre_deg=avoid_sector_half_deg,
+        dmax=dmax,
+        min_points=2,
+    )
+    d_fr = _distance_front_robuste(
+        tableau_lidar_filtre,
+        centre_deg=-avoid_front_diag_deg,
+        demi_fenetre_deg=avoid_sector_half_deg,
+        dmax=dmax,
+        min_points=2,
+    )
+    d_l = _distance_front_robuste(
+        tableau_lidar_filtre,
+        centre_deg=avoid_side_deg,
+        demi_fenetre_deg=avoid_sector_half_deg,
+        dmax=dmax,
+        min_points=2,
+    )
+    d_r = _distance_front_robuste(
+        tableau_lidar_filtre,
+        centre_deg=-avoid_side_deg,
+        demi_fenetre_deg=avoid_sector_half_deg,
+        dmax=dmax,
+        min_points=2,
+    )
+
+    left_open = 0.60 * _normalise_dist_score(d_fl, dmax) + 0.40 * _normalise_dist_score(d_l, dmax)
+    right_open = 0.60 * _normalise_dist_score(d_fr, dmax) + 0.40 * _normalise_dist_score(d_r, dmax)
+
+    dmin_left = min(x for x in [d_fl, d_l] if x is not None) if (d_fl is not None or d_l is not None) else 0.0
+    dmin_right = min(x for x in [d_fr, d_r] if x is not None) if (d_fr is not None or d_r is not None) else 0.0
+
+    penalty_left = max(0.0, (float(avoid_narrow_mm) - float(dmin_left)) / max(1.0, float(avoid_narrow_mm)))
+    penalty_right = max(0.0, (float(avoid_narrow_mm) - float(dmin_right)) / max(1.0, float(avoid_narrow_mm)))
+
+    score_left = left_open - 0.45 * penalty_left
+    score_right = right_open - 0.45 * penalty_right
+
+    return float(score_left), float(score_right)
 
 
 def calculer_commande_automate(
@@ -429,6 +613,13 @@ def calculer_commande_automate(
     camera_direction_expected=0,
     camera_unknown_value=-1,
     camera_confirm_steps=3,
+    avoid_front_diag_deg=30,
+    avoid_side_deg=65,
+    avoid_sector_half_deg=12,
+    avoid_narrow_mm=450.0,
+    obstacle_window_deg=70,
+    obstacle_cluster_gap_mm=220.0,
+    obstacle_dynamic_speed_m_s=0.12,
     debug=False,
 ):
     """
@@ -448,13 +639,12 @@ def calculer_commande_automate(
         debug=debug,
     )
 
-    d_front = distance_secteur_lidar(
+    d_front = _distance_front_robuste(
         tableau_lidar_filtre,
         centre_deg=0,
-        demi_fenetre_deg=int(sec_front_fenetre_deg),
-        dmax=float(dmax),
-        min_points=int(sec_front_min_points),
-        quantile=20,
+        demi_fenetre_deg=sec_front_fenetre_deg,
+        dmax=dmax,
+        min_points=sec_front_min_points,
     )
     d_rear = distance_secteur_lidar(
         tableau_lidar_filtre,
@@ -464,6 +654,16 @@ def calculer_commande_automate(
         min_points=int(lidar_rear_min_points),
         quantile=20,
     )
+
+    # Si aucune mesure frontale exploitable pendant un court instant,
+    # conserve la derniere mesure valide pour eviter les oscillations.
+    if d_front is None:
+        _fsm["front_missing_steps"] += 1
+        hold_steps = max(1, int(0.30 / max(1e-4, float(boucle_periode_s))))
+        if _fsm["front_missing_steps"] <= hold_steps and _fsm["last_front_mm"] is not None:
+            d_front = float(_fsm["last_front_mm"])
+    else:
+        _fsm["front_missing_steps"] = 0
 
     _fsm["last_front_mm"] = d_front
     _fsm["last_rear_mm"] = d_rear
@@ -488,10 +688,94 @@ def calculer_commande_automate(
 
     v_safe = max(0.0, min(float(v_max), v_safe))
 
+    # --- Decision intelligente de cote d'evitement (gauche/droite) ---
+    score_left, score_right = _compute_side_scores(
+        tableau_lidar_filtre,
+        dmax=float(dmax),
+        avoid_front_diag_deg=float(avoid_front_diag_deg),
+        avoid_side_deg=float(avoid_side_deg),
+        avoid_sector_half_deg=int(avoid_sector_half_deg),
+        avoid_narrow_mm=float(avoid_narrow_mm),
+    )
+    _fsm["score_left"] = score_left
+    _fsm["score_right"] = score_right
+
+    clusters = _extract_front_clusters(
+        tableau_lidar_filtre,
+        dmax=float(dmax),
+        angle_min=-int(obstacle_window_deg),
+        angle_max=int(obstacle_window_deg),
+        max_gap_mm=float(obstacle_cluster_gap_mm),
+    )
+
+    nearest = None
+    if clusters:
+        described = [_describe_cluster(c) for c in clusters if len(c) >= 3]
+        if described:
+            nearest = min(described, key=lambda c: c["min_dist"])
+
+    obj_kind = "unknown"
+    obj_side = 0
+    obj_speed = 0.0
+    if nearest is not None:
+        obj_kind = nearest["kind"]
+        obj_side = int(nearest["side"])
+        prev_dist = _fsm.get("last_obj_dist_mm")
+        if prev_dist is not None and float(boucle_periode_s) > 1e-4:
+            obj_speed = float(prev_dist - nearest["min_dist"]) / (1000.0 * float(boucle_periode_s))
+        _fsm["last_obj_dist_mm"] = float(nearest["min_dist"])
+    else:
+        _fsm["last_obj_dist_mm"] = None
+
+    _fsm["last_obj_kind"] = obj_kind
+    _fsm["last_obj_side"] = obj_side
+    _fsm["last_obj_speed_m_s"] = obj_speed
+
+    # Aide camera pour le choix de cote:
+    # - majorite rouge  -> tourner a droite
+    # - majorite verte  -> tourner a gauche
+    # - sinon           -> pas de biais camera
+    camera_bias = 0
+    if isinstance(wall_values, (list, tuple)) and len(wall_values) >= 3:
+        red_count = sum(1 for v in wall_values if v == 0)
+        green_count = sum(1 for v in wall_values if v == 1)
+        known_count = red_count + green_count
+        if known_count >= 2:
+            if red_count > green_count:
+                camera_bias = 1
+            elif green_count > red_count:
+                camera_bias = -1
+
+    # Choix intelligent du cote de manoeuvre.
+    prefer_right = score_right > score_left
+
+    # Si obstacle dynamique et decale lateralement, on tourne a l'oppose.
+    is_dynamic = abs(obj_speed) >= float(obstacle_dynamic_speed_m_s) and obj_kind != "wall"
+    if is_dynamic and obj_side != 0:
+        prefer_right = obj_side > 0
+
+    # En cas d'ambiguite, alterner progressivement apres plusieurs echecs.
+    if abs(score_left - score_right) < 0.05 and _fsm["counter_etat_backward"] > int(seuil_blocage_persist_steps):
+        prefer_right = (_fsm["counter_etat_backward"] % 2 == 0)
+
+    # Priorite camera quand la perception couleur est suffisamment nette.
+    if camera_bias == 1:
+        prefer_right = True
+    elif camera_bias == -1:
+        prefer_right = False
+
+    _fsm["flag_turn_right"] = bool(prefer_right)
+
     action_steps = max(
         1,
         int(float(blocage_action_duration_s) / max(1e-4, float(boucle_periode_s))),
     )
+    # Recul plus court pour eviter de partir trop loin avant la manoeuvre de rotation.
+    backward_steps = max(1, min(action_steps, int(0.35 / max(1e-4, float(boucle_periode_s)))))
+
+    # Vitesses de manoeuvre plafonnees pour stabiliser le comportement.
+    v_backward = min(abs(float(vitesse_blocage_m_s)), 0.30)
+    v_turn = min(abs(float(vitesse_blocage_m_s)), 0.25)
 
     v_out = 0.0
     angle_out = 0.0
@@ -516,9 +800,9 @@ def calculer_commande_automate(
                         d_rear is not None
                         and d_rear <= float(seuil_arriere_degagement_mm)
                     )
-                    if _fsm["action_counter"] >= action_steps or rear_too_close:
+                    if _fsm["action_counter"] >= backward_steps or rear_too_close:
                         _fsm["action_counter"] = 0
-                        if _fsm["flag_turn_right"] and _fsm["counter_etat_backward"] > int(seuil_blocage_persist_steps):
+                        if _fsm["flag_turn_right"]:
                             _fsm["sous_etat"] = _TURN_RIGHT
                         else:
                             _fsm["sous_etat"] = _TURN_LEFT
@@ -526,7 +810,7 @@ def calculer_commande_automate(
                         angle_out = 0.0
                     else:
                         _fsm["action_counter"] += 1
-                        v_out = -abs(float(vitesse_blocage_m_s))
+                        v_out = -v_backward
                         angle_out = 0.0
 
                 case 2:
@@ -538,11 +822,13 @@ def calculer_commande_automate(
                         else:
                             _fsm["sous_etat"] = _BACKWARD
                             _fsm["counter_etat_backward"] += 1
+                            # Si la strategie gauche n'a pas debloque, on forcera droite au cycle suivant.
+                            _fsm["flag_turn_right"] = True
                         v_out = 0.0
                         angle_out = 0.0
                     else:
                         _fsm["action_counter"] += 1
-                        v_out = abs(float(vitesse_blocage_m_s))
+                        v_out = v_turn
                         angle_out = float(angle_recul_fixe_deg)
 
                 case 1:
@@ -569,7 +855,7 @@ def calculer_commande_automate(
                         _fsm["etat"] = _BLOCAGE
                         _fsm["sous_etat"] = _BACKWARD
                         _fsm["action_counter"] = 0
-                        _fsm["flag_turn_right"] = True
+                        _fsm["flag_turn_right"] = not _fsm["flag_turn_right"]
 
                     v_out = 0.0
                     angle_out = 0.0
@@ -582,11 +868,14 @@ def calculer_commande_automate(
                             _fsm["sous_etat"] = _CAMERA_CHECKING
                         else:
                             _fsm["sous_etat"] = _BACKWARD
+                            _fsm["counter_etat_backward"] += 1
+                            # Alterne droite/gauche en cas d'echec pour sortir des cycles repetitifs.
+                            _fsm["flag_turn_right"] = False
                         v_out = 0.0
                         angle_out = 0.0
                     else:
                         _fsm["action_counter"] += 1
-                        v_out = abs(float(vitesse_blocage_m_s))
+                        v_out = v_turn
                         angle_out = -float(angle_recul_fixe_deg)
 
                 case _:

@@ -83,6 +83,18 @@ LIDAR_REAR_WINDOW_DEG        = 15      # fenetre de mesure arriere autour de 180
 LIDAR_REAR_MIN_POINTS        = 4       # nb mini de points valides pour juger l'arriere fiable
 
 # ============================================================
+# STRATEGIE EVITEMENT INTELLIGENT (LiDAR)
+# ============================================================
+AVOID_FRONT_DIAG_DEG             = 30    # secteur avant-gauche / avant-droite pour score de passage
+AVOID_SIDE_DEG                   = 65    # secteur lateral gauche / droite pour score de passage
+AVOID_SECTOR_HALF_DEG            = 12    # demi largeur de chaque secteur de score
+AVOID_NARROW_MM                  = 450.0 # penalite si passage estime trop etroit
+
+OBSTACLE_WINDOW_DEG              = 70    # fenetre frontale pour clustering obstacle
+OBSTACLE_CLUSTER_GAP_MM          = 220.0 # distance max entre 2 points consecutifs d'un meme cluster
+OBSTACLE_DYNAMIC_SPEED_M_S       = 0.12  # seuil de vitesse relative pour considerer obstacle dynamique
+
+# ============================================================
 # FILTRAGE DES COMMANDES (stabilisation)
 # ============================================================
 FILTRE_ALPHA_VITESSE         = 0.35    # 0=stable mais lent, 1=brut

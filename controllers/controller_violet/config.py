@@ -40,7 +40,7 @@ L_ENTRAXE_M            = 0.180  # voie du modele utilise par la conversion Acker
 W_EMPATTEMENT_M        = 0.250  # empattement du modele utilise par la conversion Ackermann
 LIDAR_DMAX_MM          = 3000.0 # distance max de normalisation lidar
 VITESSE_AUTO_MIN_M_S   = 0.1    # borne basse de la vitesse issue du reseau
-VITESSE_AUTO_MAX_M_S   = 0.6   # borne haute en conduite autonome reelle (augmenter progressivement)
+VITESSE_AUTO_MAX_M_S   = 2.0   # borne haute en conduite autonome reelle (augmenter progressivement)
 AUTO_DEBUG             = True   # active les prints debug de calculer_commande_auto
 
 BOUCLE_PERIODE_S       = 0.01   # période de la boucle de contrôle (10 ms)
@@ -63,18 +63,17 @@ CAMERA_CONFIRM_STEPS         = 3       # nb de validations consecutives avant re
 # ============================================================
 # SECURITE ANTI-COLLISION (front)
 # ============================================================
-SECURITE_FRONT_STOP_MM       = 700.0   # stop immediat si obstacle frontal proche
-SECURITE_FRONT_RALENTI_MM    = 1500.0  # reduction progressive de vitesse sous ce seuil
+SECURITE_FRONT_STOP_MM       = 200.0   # stop immediat si obstacle frontal proche
+SECURITE_FRONT_RALENTI_MM    = 500.0  # reduction progressive de vitesse sous ce seuil
 SECURITE_FRONT_FENETRE_DEG   = 15      # fenetre angulaire frontale pour la decision de securite
 SECURITE_FRONT_MIN_POINTS    = 5       # nombre mini de points valides pour juger le front fiable
-SECURITE_VITESSE_INCERTAINE  = 0.05    # vitesse max si front non fiable (peu de points)
 
 # ============================================================
 # MACHINE A ETATS NAVIGATION / BLOCAGE
 # ============================================================
-SEUIL_FRONT_BLOCAGE_MM       = 500.0   # passage en mode blocage si obstacle proche
-SEUIL_FRONT_DEGAGEMENT_MM    = 1500.0  # seuil de front libre pour sortir des manoeuvres
-SEUIL_ARRIERE_DEGAGEMENT_MM  = 300.0   # stop recul si obstacle arriere proche
+SEUIL_FRONT_BLOCAGE_MM       = 250.0   # passage en mode blocage si obstacle proche
+SEUIL_FRONT_DEGAGEMENT_MM    = 500.0  # seuil de front libre pour sortir des manoeuvres
+SEUIL_ARRIERE_DEGAGEMENT_MM  = 100.0   # stop recul si obstacle arriere proche
 SEUIL_BLOCAGE_PERSIST_STEPS  = 5       # nb d'echecs avant autoriser TURN_RIGHT
 ANGLE_RECUL_FIXE_DEG         = 15.0    # angle fixe pour manoeuvres gauche/droite
 VITESSE_BLOCAGE_M_S          = 0.5     # vitesse de manoeuvre en mode blocage
@@ -88,7 +87,7 @@ LIDAR_REAR_MIN_POINTS        = 4       # nb mini de points valides pour juger l'
 AVOID_FRONT_DIAG_DEG             = 30    # secteur avant-gauche / avant-droite pour score de passage
 AVOID_SIDE_DEG                   = 65    # secteur lateral gauche / droite pour score de passage
 AVOID_SECTOR_HALF_DEG            = 12    # demi largeur de chaque secteur de score
-AVOID_NARROW_MM                  = 450.0 # penalite si passage estime trop etroit
+AVOID_NARROW_MM                  = 300.0 # penalite si passage estime trop etroit
 
 OBSTACLE_WINDOW_DEG              = 70    # fenetre frontale pour clustering obstacle
 OBSTACLE_CLUSTER_GAP_MM          = 220.0 # distance max entre 2 points consecutifs d'un meme cluster

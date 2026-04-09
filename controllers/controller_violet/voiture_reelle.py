@@ -258,7 +258,6 @@ def main():
                 wall_values=wall_values,
                 sec_front_fenetre_deg=config.SECURITE_FRONT_FENETRE_DEG,
                 sec_front_min_points=config.SECURITE_FRONT_MIN_POINTS,
-                sec_vitesse_incertaine=config.SECURITE_VITESSE_INCERTAINE,
                 sec_front_stop_mm=config.SECURITE_FRONT_STOP_MM,
                 sec_front_ralenti_mm=config.SECURITE_FRONT_RALENTI_MM,
                 seuil_front_blocage_mm=config.SEUIL_FRONT_BLOCAGE_MM,

@@ -597,7 +597,6 @@ def calculer_commande_automate(
     wall_values=None,
     sec_front_fenetre_deg=15,
     sec_front_min_points=5,
-    sec_vitesse_incertaine=0.05,
     sec_front_stop_mm=700.0,
     sec_front_ralenti_mm=1500.0,
     seuil_front_blocage_mm=500.0,
@@ -674,18 +673,16 @@ def calculer_commande_automate(
 
     # Securite frontale appliquee seulement en navigation.
     v_safe = float(v_base)
+    stop_mm = float(sec_front_stop_mm)
+    slow_mm = float(sec_front_ralenti_mm)
     if d_front is None:
-        v_safe = min(v_safe, float(sec_vitesse_incertaine))
-    else:
-        stop_mm = float(sec_front_stop_mm)
-        slow_mm = float(sec_front_ralenti_mm)
-        if d_front <= stop_mm:
-            v_safe = 0.0
-        elif d_front < slow_mm:
-            ratio = (d_front - stop_mm) / max(1.0, slow_mm - stop_mm)
-            v_lim = max(0.0, min(1.0, ratio)) * float(v_max)
-            v_safe = min(v_safe, v_lim)
-
+        pass
+    elif d_front is not d_front <= stop_mm:
+        v_safe = 0.0
+    elif d_front < slow_mm:
+        ratio = (d_front - stop_mm) / max(1.0, slow_mm - stop_mm)
+        v_lim = max(0.0, min(1.0, ratio)) * float(v_max)
+        v_safe = min(v_safe, v_lim)
     v_safe = max(0.0, min(float(v_max), v_safe))
 
     # --- Decision intelligente de cote d'evitement (gauche/droite) ---

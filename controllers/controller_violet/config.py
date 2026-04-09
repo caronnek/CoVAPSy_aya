@@ -40,15 +40,14 @@ L_ENTRAXE_M            = 0.180  # voie du modele utilise par la conversion Acker
 W_EMPATTEMENT_M        = 0.250  # empattement du modele utilise par la conversion Ackermann
 LIDAR_DMAX_MM          = 3000.0 # distance max de normalisation lidar
 VITESSE_AUTO_MIN_M_S   = 0.0    # borne basse de la vitesse issue du reseau
-VITESSE_AUTO_MAX_M_S   = 0.6   # borne haute en conduite autonome reelle (augmenter progressivement)
-
+VITESSE_AUTO_MAX_M_S   = 2.0   # borne haute en conduite autonome reelle (augmenter progressivement)
 BOUCLE_PERIODE_S       = 0.01   # période de la boucle de contrôle (10 ms)
 
 # ============================================================
 # SECURITE ANTI-COLLISION (front)
 # ============================================================
-SECURITE_FRONT_STOP_MM       = 700.0   # stop immediat si obstacle frontal proche
-SECURITE_FRONT_RALENTI_MM    = 1500.0  # reduction progressive de vitesse sous ce seuil
+SECURITE_FRONT_STOP_MM       = 180.0   # stop immediat si obstacle frontal proche
+SECURITE_FRONT_RALENTI_MM    = 300.0  # reduction progressive de vitesse sous ce seuil
 SECURITE_FRONT_FENETRE_DEG   = 15      # fenetre angulaire frontale pour la decision de securite
 SECURITE_FRONT_MIN_POINTS    = 5       # nombre mini de points valides pour juger le front fiable
 SECURITE_VITESSE_INCERTAINE  = 0.05    # vitesse max si front non fiable (peu de points)
@@ -56,7 +55,7 @@ SECURITE_VITESSE_INCERTAINE  = 0.05    # vitesse max si front non fiable (peu de
 # ============================================================
 # MACHINE A ETATS NAVIGATION / BLOCAGE
 # ============================================================
-SEUIL_FRONT_BLOCAGE_MM       = 500.0   # passage en mode blocage si obstacle proche
+SEUIL_FRONT_BLOCAGE_MM       = 200.0   # passage en mode blocage si obstacle proche
 SEUIL_FRONT_DEGAGEMENT_MM    = 1500.0  # seuil de front libre pour sortir des manoeuvres
 SEUIL_ARRIERE_DEGAGEMENT_MM  = 300.0   # stop recul si obstacle arriere proche
 ANGLE_RECUL_FIXE_DEG         = 15.0    # angle fixe pour manoeuvres gauche/droite

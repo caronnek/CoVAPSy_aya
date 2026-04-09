@@ -14,17 +14,18 @@ from controller import Lidar
 import numpy as np
 import cv2
 
-from commun import filtre_moyenneur, lire_point_lidar, normaliser_distance, differentiel_vers_ackermann, calculer_commande_auto
+from commun import filtre_moyenneur, AutomateConduite
+import config
 
 # =========================
 # Paramètres véhicule
 # =========================
 maxSpeed = 50       # km/h
-maxangle_degre = 18
+maxangle_degre = config.ANGLE_DEGRE_MAX
 
-# --- Paramètres géométriques du TT-02 (à ajuster selon le modèle Webots) ---
-L_entraxe = 0.180  # m  — distance entre roues gauche/droite (voie)
-W_empattement = 0.250  # m  — distance entre essieu avant et arrière
+# --- Paramètres géométriques du TT-02 (alignes avec la voiture reelle) ---
+L_entraxe = config.L_ENTRAXE_M
+W_empattement = config.W_EMPATTEMENT_M
 
 # =========================
 # Fonctions véhicule propre à Weebots
@@ -35,8 +36,8 @@ def set_vitesse_m_s(vitesse_m_s):
     speed = vitesse_m_s * 3.6
     if speed > maxSpeed:
         speed = maxSpeed
-    if speed < 0:
-        speed = 0
+    if speed < -maxSpeed:
+        speed = -maxSpeed
     driver.setCruisingSpeed(speed)
 
 def set_direction_degre(angle_degre):
@@ -98,6 +99,29 @@ def main():
         camera_ok = True
         print("Camera trouvée :", camera.getName())
         print("Resolution camera :", camera.getWidth(), "x", camera.getHeight())  
+
+    automate = AutomateConduite(
+        L_entraxe=L_entraxe,
+        W_empattement=W_empattement,
+        maxangle_degre=maxangle_degre,
+        dmax=config.LIDAR_DMAX_MM,
+        v_min=config.VITESSE_AUTO_MIN_M_S,
+        v_max=config.VITESSE_AUTO_MAX_M_S,
+        securite_front_fenetre_deg=config.SECURITE_FRONT_FENETRE_DEG,
+        securite_front_min_points=config.SECURITE_FRONT_MIN_POINTS,
+        securite_vitesse_incertaine=config.SECURITE_VITESSE_INCERTAINE,
+        securite_front_stop_mm=config.SECURITE_FRONT_STOP_MM,
+        securite_front_ralenti_mm=config.SECURITE_FRONT_RALENTI_MM,
+        filtre_alpha_vitesse=config.FILTRE_ALPHA_VITESSE,
+        filtre_alpha_angle=config.FILTRE_ALPHA_ANGLE,
+        seuil_front_blocage_mm=config.SEUIL_FRONT_BLOCAGE_MM,
+        seuil_front_degagement_mm=config.SEUIL_FRONT_DEGAGEMENT_MM,
+        seuil_arriere_degagement_mm=config.SEUIL_ARRIERE_DEGAGEMENT_MM,
+        angle_recul_fixe_deg=config.ANGLE_RECUL_FIXE_DEG,
+        vitesse_blocage_m_s=config.VITESSE_BLOCAGE_M_S,
+        blocage_action_duration_s=config.BLOCAGE_ACTION_DURATION_S,
+        boucle_periode_s=max(sensorTimeStep / 1000.0, 1e-3),
+    )
 
 
     while driver.step() != -1:
@@ -161,21 +185,13 @@ def main():
         if not modeAuto:
             set_direction_degre(0)
             set_vitesse_m_s(0)
+            automate.reset()
             continue
         
         # ========================= 
         # Programme auto : appel de la fonction autonome
         # =========================
-        v_cmd, angle_cmd = calculer_commande_auto(
-            tableau_lidar_filtre,
-            L_entraxe=L_entraxe,
-            W_empattement=W_empattement,
-            maxangle_degre=maxangle_degre,
-            dmax=3000.0,
-            v_min=0.4,
-            v_max=1.2,
-            debug=True,
-        )
+        v_cmd, angle_cmd = automate.calculer_commande(tableau_lidar_filtre)
 
         # Si le sens de rotation est inversé, passer -angle_cmd ici :
         # angle_cmd = -angle_cmd

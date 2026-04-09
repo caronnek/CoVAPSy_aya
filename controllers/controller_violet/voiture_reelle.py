@@ -29,7 +29,7 @@ import time
 import cv2
 import numpy as np
 
-from commun import filtre_moyenneur, lire_point_lidar, calculer_commande_auto
+from commun import filtre_moyenneur, AutomateConduite
 
 import config
 from robot_base import Actionneurs, CapteurLidar
@@ -50,78 +50,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-NAVIGATION = "NAVIGATION"
-BLOCAGE = "BLOCAGE"
-BACKWARD = "BACKWARD"
-CAMERA_CHECKING = "CAMERA_CHECKING"
-TURN_LEFT = "TURN_LEFT"
-TURN_RIGHT = "TURN_RIGHT"
-
-
-def distance_front_securite(tableau_lidar_mm):
-    """Estime une distance frontale robuste dans une fenetre angulaire.
-
-    Retourne None si le front n'est pas assez observe.
-    """
-    fen = int(getattr(config, "SECURITE_FRONT_FENETRE_DEG", 15))
-    min_points = int(getattr(config, "SECURITE_FRONT_MIN_POINTS", 5))
-    dmax = float(config.LIDAR_DMAX_MM)
-
-    valeurs = []
-    for a in range(-fen, fen + 1):
-        idx = a % 360
-        d = tableau_lidar_mm[idx]
-        if 0 < d <= dmax:
-            valeurs.append(float(d))
-
-    if len(valeurs) < min_points:
-        return None
-
-    # Quantile bas pour rester prudent sans etre trop sensible au bruit ponctuel.
-    return float(np.percentile(valeurs, 20))
-
-
-def distance_arriere_lidar(tableau_lidar_mm):
-    """Estime la distance arriere avec une fenetre autour de 180 degres."""
-    return lire_point_lidar(tableau_lidar_mm, 180, fenetre_deg=12, min_points=4)
-
-
 def camera_valide_direction():
     """Stub camera : a remplacer plus tard par la vraie logique vision."""
     return True
-
-
-def details_depuis_scan(tableau_lidar_filtre, dmax_mm):
-    """Construit un detail minimal si calculer_commande_auto ne renvoie pas de details."""
-    d_l1 = float(lire_point_lidar(tableau_lidar_filtre, 60, fenetre_deg=3, min_points=2))
-    d_l2 = float(lire_point_lidar(tableau_lidar_filtre, 70, fenetre_deg=3, min_points=2))
-    d_lf1 = float(lire_point_lidar(tableau_lidar_filtre, 5, fenetre_deg=3, min_points=2))
-    d_front = float(lire_point_lidar(tableau_lidar_filtre, 0, fenetre_deg=10, min_points=6))
-    d_rf1 = float(lire_point_lidar(tableau_lidar_filtre, -5, fenetre_deg=3, min_points=2))
-    d_r1 = float(lire_point_lidar(tableau_lidar_filtre, -60, fenetre_deg=3, min_points=2))
-    d_r2 = float(lire_point_lidar(tableau_lidar_filtre, -70, fenetre_deg=3, min_points=2))
-
-    def prox(d):
-        return 1.0 - max(0.0, min(float(d), dmax_mm)) / dmax_mm
-
-    return {
-        "d_l1": d_l1,
-        "d_l2": d_l2,
-        "d_lf1": d_lf1,
-        "d_front": d_front,
-        "d_rf1": d_rf1,
-        "d_r1": d_r1,
-        "d_r2": d_r2,
-        "p_l1": prox(d_l1),
-        "p_l2": prox(d_l2),
-        "p_lf1": prox(d_lf1),
-        "p_f": prox(d_front),
-        "p_rf1": prox(d_rf1),
-        "p_r1": prox(d_r1),
-        "p_r2": prox(d_r2),
-        "u_g": float("nan"),
-        "u_d": float("nan"),
-    }
 
 
 def gestion_commandes_clavier(mode_auto_event: threading.Event, stop_event: threading.Event, actionneurs: Actionneurs):
@@ -226,21 +157,32 @@ def main():
         print("Camera trouvée :", camera.getName())
         print("Resolution camera :", camera.getWidth(), "x", camera.getHeight())  
 
-    # Etats filtres pour lisser les commandes et eviter les bascules brutales.
-    v_cmd_filtre = 0.0
-    angle_cmd_filtre = 0.0
+    # Debug d'affichage periodique des etats de l'automate.
     last_print_debug = 0.0
 
-    # Machine a etats de deblocage
-    etat = NAVIGATION
-    sous_etat = BACKWARD
-    flag_turn_right = False
-    action_counter = 0
-    action_steps = max(
-        1,
-        int(float(getattr(config, "BLOCAGE_ACTION_DURATION_S", 1.0)) / max(1e-3, float(config.BOUCLE_PERIODE_S))),
+    automate = AutomateConduite(
+        L_entraxe=config.L_ENTRAXE_M,
+        W_empattement=config.W_EMPATTEMENT_M,
+        maxangle_degre=config.ANGLE_DEGRE_MAX,
+        dmax=config.LIDAR_DMAX_MM,
+        v_min=config.VITESSE_AUTO_MIN_M_S,
+        v_max=config.VITESSE_AUTO_MAX_M_S,
+        securite_front_fenetre_deg=config.SECURITE_FRONT_FENETRE_DEG,
+        securite_front_min_points=config.SECURITE_FRONT_MIN_POINTS,
+        securite_vitesse_incertaine=config.SECURITE_VITESSE_INCERTAINE,
+        securite_front_stop_mm=config.SECURITE_FRONT_STOP_MM,
+        securite_front_ralenti_mm=config.SECURITE_FRONT_RALENTI_MM,
+        filtre_alpha_vitesse=config.FILTRE_ALPHA_VITESSE,
+        filtre_alpha_angle=config.FILTRE_ALPHA_ANGLE,
+        seuil_front_blocage_mm=config.SEUIL_FRONT_BLOCAGE_MM,
+        seuil_front_degagement_mm=config.SEUIL_FRONT_DEGAGEMENT_MM,
+        seuil_arriere_degagement_mm=config.SEUIL_ARRIERE_DEGAGEMENT_MM,
+        angle_recul_fixe_deg=config.ANGLE_RECUL_FIXE_DEG,
+        vitesse_blocage_m_s=config.VITESSE_BLOCAGE_M_S,
+        blocage_action_duration_s=config.BLOCAGE_ACTION_DURATION_S,
+        boucle_periode_s=config.BOUCLE_PERIODE_S,
+        camera_valide_fn=camera_valide_direction,
     )
-    compat_signature_warned = False
     
     
     try:
@@ -279,212 +221,56 @@ def main():
             if not mode_auto_event.is_set():
                 act.set_direction_degre(0)
                 act.set_vitesse_m_s(0)
-                etat = NAVIGATION
-                sous_etat = BACKWARD
-                flag_turn_right = False
-                action_counter = 0
-                v_cmd_filtre = 0.0
-                angle_cmd_filtre = 0.0
+                automate.reset()
                 continue
 
         # ========================= 
         # Programme auto : appel de la fonction autonome
         # =========================
-            try:
-                v_cmd, angle_cmd, details = calculer_commande_auto(
-                    tableau_lidar_filtre,
-                    L_entraxe=config.L_ENTRAXE_M,
-                    W_empattement=config.W_EMPATTEMENT_M,
-                    maxangle_degre=config.ANGLE_DEGRE_MAX,
-                    dmax=config.LIDAR_DMAX_MM,
-                    v_min=config.VITESSE_AUTO_MIN_M_S,
-                    v_max=config.VITESSE_AUTO_MAX_M_S,
-                    debug=False,
-                    retour_detail=True,
-                )
-            except TypeError:
-                v_cmd, angle_cmd = calculer_commande_auto(
-                    tableau_lidar_filtre,
-                    L_entraxe=config.L_ENTRAXE_M,
-                    W_empattement=config.W_EMPATTEMENT_M,
-                    maxangle_degre=config.ANGLE_DEGRE_MAX,
-                    dmax=config.LIDAR_DMAX_MM,
-                    v_min=config.VITESSE_AUTO_MIN_M_S,
-                    v_max=config.VITESSE_AUTO_MAX_M_S,
-                    debug=False,
-                )
-                details = details_depuis_scan(tableau_lidar_filtre, float(config.LIDAR_DMAX_MM))
-                if not compat_signature_warned:
-                    logger.warning(
-                        "Signature ancienne detectee pour calculer_commande_auto (sans retour_detail). "
-                        "Mode compatibilite actif."
-                    )
-                    compat_signature_warned = True
-
-            d_front = float(details["d_front"])
-            d_rear = float(distance_arriere_lidar(tableau_lidar_filtre))
-
-            # Variables sorties de boucle (commande finale appliquee aux actionneurs).
-            cmd_v_out = 0.0
-            cmd_angle_out = 0.0
-            raison_secu = "n/a"
-            d_front_sec = None
-            v_cible = 0.0
-
-            seuil_front_blocage = float(getattr(config, "SEUIL_FRONT_BLOCAGE_MM", 500.0))
-            seuil_front_degagement = float(getattr(config, "SEUIL_FRONT_DEGAGEMENT_MM", 1500.0))
-            seuil_arriere_degagement = float(getattr(config, "SEUIL_ARRIERE_DEGAGEMENT_MM", 300.0))
-            vitesse_blocage = abs(float(getattr(config, "VITESSE_BLOCAGE_M_S", 0.5)))
-            angle_recul_fixe = float(getattr(config, "ANGLE_RECUL_FIXE_DEG", 15.0))
-
-            if etat == NAVIGATION:
-                # Garde-fou: impose explicitement les bornes de vitesse autonome.
-                v_cmd = max(config.VITESSE_AUTO_MIN_M_S, min(config.VITESSE_AUTO_MAX_M_S, float(v_cmd)))
-
-                # Securite frontale robuste (override vitesse)
-                d_front_sec = distance_front_securite(tableau_lidar_filtre)
-                v_cible = float(v_cmd)
-                raison_secu = "normal"
-
-                if d_front_sec is None:
-                    v_cible = min(v_cible, float(getattr(config, "SECURITE_VITESSE_INCERTAINE", 0.05)))
-                    raison_secu = "front_incertain"
-                else:
-                    stop_mm = float(getattr(config, "SECURITE_FRONT_STOP_MM", 700.0))
-                    slow_mm = float(getattr(config, "SECURITE_FRONT_RALENTI_MM", 1500.0))
-
-                    if d_front_sec <= stop_mm:
-                        v_cible = 0.0
-                        raison_secu = "stop_front"
-                    elif d_front_sec < slow_mm:
-                        ratio = (d_front_sec - stop_mm) / max(1.0, (slow_mm - stop_mm))
-                        v_lim = max(0.0, min(1.0, ratio)) * float(config.VITESSE_AUTO_MAX_M_S)
-                        v_cible = min(v_cible, v_lim)
-                        raison_secu = "ralenti_front"
-
-                v_cible = max(float(config.VITESSE_AUTO_MIN_M_S), min(float(config.VITESSE_AUTO_MAX_M_S), v_cible))
-
-                # Lissage commandes
-                alpha_v = float(getattr(config, "FILTRE_ALPHA_VITESSE", 0.35))
-                alpha_a = float(getattr(config, "FILTRE_ALPHA_ANGLE", 0.20))
-                v_cmd_filtre = (1.0 - alpha_v) * v_cmd_filtre + alpha_v * v_cible
-                angle_cmd_filtre = (1.0 - alpha_a) * angle_cmd_filtre + alpha_a * float(angle_cmd)
-
-                if d_front_sec is not None and d_front_sec <= float(getattr(config, "SECURITE_FRONT_STOP_MM", 700.0)):
-                    # En stop frontal, on annule immediatement la vitesse (pas de trainage du filtre).
-                    v_cmd_filtre = 0.0
-                    # En stop frontal, on recentre progressivement les roues.
-                    angle_cmd_filtre = (1.0 - alpha_a) * angle_cmd_filtre
-
-                v_cmd_filtre = max(float(config.VITESSE_AUTO_MIN_M_S), min(float(config.VITESSE_AUTO_MAX_M_S), v_cmd_filtre))
-
-                if d_front < seuil_front_blocage:
-                    etat = BLOCAGE
-                    sous_etat = BACKWARD
-                    flag_turn_right = False
-                    action_counter = 0
-                    cmd_v_out = 0.0
-                    cmd_angle_out = 0.0
-                    logger.info("Transition NAVIGATION -> BLOCAGE")
-                else:
-                    cmd_v_out = float(v_cmd_filtre)
-                    cmd_angle_out = float(angle_cmd_filtre)
-
-            else:
-                raison_secu = "etat_blocage"
-                d_front_sec = d_front
-
-                if sous_etat == BACKWARD:
-                    if action_counter >= action_steps or d_rear <= seuil_arriere_degagement:
-                        cmd_v_out = 0.0
-                        cmd_angle_out = 0.0
-                        action_counter = 0
-                        if flag_turn_right:
-                            sous_etat = TURN_RIGHT
-                            logger.info("BACKWARD -> TURN_RIGHT")
-                        else:
-                            sous_etat = TURN_LEFT
-                            logger.info("BACKWARD -> TURN_LEFT")
-                    else:
-                        cmd_angle_out = 0.0
-                        cmd_v_out = -vitesse_blocage
-                        action_counter += 1
-
-                elif sous_etat == TURN_LEFT:
-                    if action_counter >= action_steps:
-                        cmd_v_out = 0.0
-                        cmd_angle_out = 0.0
-                        action_counter = 0
-                        if d_front > seuil_front_degagement:
-                            sous_etat = CAMERA_CHECKING
-                            logger.info("TURN_LEFT -> CAMERA_CHECKING")
-                        else:
-                            sous_etat = BACKWARD
-                            logger.info("TURN_LEFT -> BACKWARD")
-                    else:
-                        cmd_angle_out = angle_recul_fixe
-                        cmd_v_out = vitesse_blocage
-                        action_counter += 1
-
-                elif sous_etat == TURN_RIGHT:
-                    if action_counter >= action_steps:
-                        cmd_v_out = 0.0
-                        cmd_angle_out = 0.0
-                        action_counter = 0
-                        if d_front > seuil_front_degagement:
-                            sous_etat = CAMERA_CHECKING
-                            logger.info("TURN_RIGHT -> CAMERA_CHECKING")
-                        else:
-                            sous_etat = BACKWARD
-                            logger.info("TURN_RIGHT -> BACKWARD")
-                    else:
-                        cmd_angle_out = -angle_recul_fixe
-                        cmd_v_out = vitesse_blocage
-                        action_counter += 1
-
-                elif sous_etat == CAMERA_CHECKING:
-                    cmd_v_out = 0.0
-                    cmd_angle_out = 0.0
-                    action_counter = 0
-                    if camera_valide_direction():
-                        etat = NAVIGATION
-                        sous_etat = BACKWARD
-                        flag_turn_right = False
-                        v_cmd_filtre = 0.0
-                        angle_cmd_filtre = 0.0
-                        logger.info("CAMERA_CHECKING -> NAVIGATION")
-                    else:
-                        etat = BLOCAGE
-                        sous_etat = BACKWARD
-                        flag_turn_right = True
-                        logger.info("CAMERA_CHECKING -> BLOCAGE")
-
-                else:
-                    # Fallback robuste en cas de sous-etat inattendu.
-                    cmd_v_out = 0.0
-                    cmd_angle_out = 0.0
-                    sous_etat = BACKWARD
-                    action_counter = 0
+            v_cmd, angle_cmd = automate.calculer_commande(tableau_lidar_filtre)
+            debug_auto = automate.last_debug
+            details = debug_auto.get("details", {})
+            d_front = float(debug_auto.get("d_front", 0.0))
+            d_rear = float(debug_auto.get("d_rear", 0.0))
+            d_front_sec = debug_auto.get("d_front_sec", None)
+            v_cible = float(debug_auto.get("v_cible", 0.0))
+            raison_secu = str(debug_auto.get("raison_secu", "n/a"))
+            etat = str(debug_auto.get("etat", "?"))
+            sous_etat = str(debug_auto.get("sous_etat", "-"))
 
             now = time.time()
-            if now - last_print_debug >= float(getattr(config, "DEBUG_PRINT_PERIOD_S", 0.5)):
+            if now - last_print_debug >= float(config.DEBUG_PRINT_PERIOD_S):
                 last_print_debug = now
                 print("--------------------------------------------------")
-                print(f"[ETAT] {etat}  |  [SOUS-ETAT] {sous_etat if etat == BLOCAGE else '-'}")
-                print(f"d_l1={details['d_l1']:.1f} d_l2={details['d_l2']:.1f} d_lf1={details['d_lf1']:.1f} d_front={d_front:.1f} d_rf1={details['d_rf1']:.1f} d_r1={details['d_r1']:.1f} d_r2={details['d_r2']:.1f} d_rear={d_rear:.1f}")
-                print(f"u_g={details['u_g']:.3f} u_d={details['u_d']:.3f} v_raw={v_cmd:.3f} angle_raw={angle_cmd:.3f}")
+                print(f"[ETAT] {etat}  |  [SOUS-ETAT] {sous_etat}")
+                print(
+                    f"d_l1={float(details.get('d_l1', 0.0)):.1f} "
+                    f"d_l2={float(details.get('d_l2', 0.0)):.1f} "
+                    f"d_lf1={float(details.get('d_lf1', 0.0)):.1f} "
+                    f"d_front={d_front:.1f} "
+                    f"d_rf1={float(details.get('d_rf1', 0.0)):.1f} "
+                    f"d_r1={float(details.get('d_r1', 0.0)):.1f} "
+                    f"d_r2={float(details.get('d_r2', 0.0)):.1f} "
+                    f"d_rear={d_rear:.1f}"
+                )
+                print(
+                    f"u_g={float(details.get('u_g', float('nan'))):.3f} "
+                    f"u_d={float(details.get('u_d', float('nan'))):.3f} "
+                    f"v_raw={float(debug_auto.get('v_raw', 0.0)):.3f} "
+                    f"angle_raw={float(debug_auto.get('angle_raw', 0.0)):.3f}"
+                )
                 if d_front_sec is None:
                     print(f"[SECU] front=INCERTAIN v_safe={v_cible:.3f} reason={raison_secu}")
                 else:
                     print(f"[SECU] front={d_front_sec:.1f}mm v_safe={v_cible:.3f} reason={raison_secu}")
-                print(f"[CMD] v_out={cmd_v_out:.3f} m/s angle_out={cmd_angle_out:.3f} deg")
+                print(f"[CMD] v_out={v_cmd:.3f} m/s angle_out={angle_cmd:.3f} deg")
         
             # Si le sens de rotation est inversé, passer -angle_cmd ici :
             # angle_cmd = -angle_cmd
         
             # 7) Commande véhicule
-            act.set_direction_degre(cmd_angle_out)
-            act.set_vitesse_m_s(cmd_v_out)
+            act.set_direction_degre(angle_cmd)
+            act.set_vitesse_m_s(v_cmd)
     except KeyboardInterrupt:
         logger.info("Interruption clavier recue (Ctrl+C) — arret propre")
         stop_event.set()

@@ -182,7 +182,7 @@ class CapteurLidar:
                 time.sleep(1)
                 self._lidar.disconnect()
             except Exception as e:
-                logger.warning("Erreur à la déconnexion lidar : %s", e)
+                logger.warning("Erreur disconnect lidar : %s", e)
         logger.info("Lidar arrêté")
 
     def lire(self) -> bool:

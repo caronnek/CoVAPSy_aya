@@ -226,3 +226,308 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
         "u_d": float(u_d),
     }
     return v_cmd, angle_cmd, details
+
+
+class AutomateConduite:
+    """Automate de conduite partage entre simulation et voiture reelle.
+
+    Utilisation :
+        automate = AutomateConduite(...)
+        v_cmd, angle_cmd = automate.calculer_commande(scan_filtre)
+    """
+
+    NAVIGATION = "NAVIGATION"
+    BLOCAGE = "BLOCAGE"
+    BACKWARD = "BACKWARD"
+    CAMERA_CHECKING = "CAMERA_CHECKING"
+    TURN_LEFT = "TURN_LEFT"
+    TURN_RIGHT = "TURN_RIGHT"
+
+    def __init__(
+        self,
+        L_entraxe,
+        W_empattement,
+        maxangle_degre,
+        dmax=3000.0,
+        v_min=0.0,
+        v_max=0.6,
+        securite_front_fenetre_deg=15,
+        securite_front_min_points=5,
+        securite_vitesse_incertaine=0.05,
+        securite_front_stop_mm=700.0,
+        securite_front_ralenti_mm=1500.0,
+        filtre_alpha_vitesse=0.35,
+        filtre_alpha_angle=0.20,
+        seuil_front_blocage_mm=None,
+        seuil_front_degagement_mm=1500.0,
+        seuil_arriere_degagement_mm=300.0,
+        angle_recul_fixe_deg=15.0,
+        vitesse_blocage_m_s=0.5,
+        blocage_action_duration_s=1.0,
+        boucle_periode_s=0.01,
+        camera_valide_fn=None,
+    ):
+        self.L_entraxe = float(L_entraxe)
+        self.W_empattement = float(W_empattement)
+        self.maxangle_degre = float(maxangle_degre)
+        self.dmax = float(dmax)
+        self.v_min = float(v_min)
+        self.v_max = float(v_max)
+
+        self.securite_front_fenetre_deg = int(securite_front_fenetre_deg)
+        self.securite_front_min_points = int(securite_front_min_points)
+        self.securite_vitesse_incertaine = float(securite_vitesse_incertaine)
+        self.securite_front_stop_mm = float(securite_front_stop_mm)
+        self.securite_front_ralenti_mm = float(securite_front_ralenti_mm)
+
+        self.filtre_alpha_vitesse = float(filtre_alpha_vitesse)
+        self.filtre_alpha_angle = float(filtre_alpha_angle)
+
+        if seuil_front_blocage_mm is None:
+            self.seuil_front_blocage_mm = float(self.securite_front_stop_mm)
+        else:
+            self.seuil_front_blocage_mm = float(seuil_front_blocage_mm)
+
+        self.seuil_front_degagement_mm = float(seuil_front_degagement_mm)
+        self.seuil_arriere_degagement_mm = float(seuil_arriere_degagement_mm)
+        self.angle_recul_fixe_deg = float(angle_recul_fixe_deg)
+        self.vitesse_blocage_m_s = abs(float(vitesse_blocage_m_s))
+
+        self.action_steps = max(
+            1,
+            int(float(blocage_action_duration_s) / max(1e-3, float(boucle_periode_s))),
+        )
+
+        if camera_valide_fn is None:
+            self.camera_valide_fn = lambda: True
+        else:
+            self.camera_valide_fn = camera_valide_fn
+
+        self._compat_signature_warned = False
+        self.last_debug = {}
+        self.reset()
+
+    def reset(self):
+        """Remet l'automate a son etat initial."""
+        self.etat = self.NAVIGATION
+        self.sous_etat = self.BACKWARD
+        self.flag_turn_right = False
+        self.action_counter = 0
+        self.v_cmd_filtre = 0.0
+        self.angle_cmd_filtre = 0.0
+        self.last_debug = {}
+
+    def _distance_front_securite(self, tableau_lidar_mm):
+        valeurs = []
+        for a in range(-self.securite_front_fenetre_deg, self.securite_front_fenetre_deg + 1):
+            idx = a % 360
+            d = tableau_lidar_mm[idx]
+            if 0 < d <= self.dmax:
+                valeurs.append(float(d))
+
+        if len(valeurs) < self.securite_front_min_points:
+            return None
+
+        return float(np.percentile(valeurs, 20))
+
+    def _distance_arriere_lidar(self, tableau_lidar_mm):
+        return float(lire_point_lidar(tableau_lidar_mm, 180, fenetre_deg=12, min_points=4))
+
+    def _details_depuis_scan(self, tableau_lidar_filtre):
+        d_l1 = float(lire_point_lidar(tableau_lidar_filtre, 60, fenetre_deg=3, min_points=2))
+        d_l2 = float(lire_point_lidar(tableau_lidar_filtre, 70, fenetre_deg=3, min_points=2))
+        d_lf1 = float(lire_point_lidar(tableau_lidar_filtre, 5, fenetre_deg=3, min_points=2))
+        d_front = float(lire_point_lidar(tableau_lidar_filtre, 0, fenetre_deg=10, min_points=6))
+        d_rf1 = float(lire_point_lidar(tableau_lidar_filtre, -5, fenetre_deg=3, min_points=2))
+        d_r1 = float(lire_point_lidar(tableau_lidar_filtre, -60, fenetre_deg=3, min_points=2))
+        d_r2 = float(lire_point_lidar(tableau_lidar_filtre, -70, fenetre_deg=3, min_points=2))
+
+        def prox(d):
+            return 1.0 - max(0.0, min(float(d), self.dmax)) / self.dmax
+
+        return {
+            "d_l1": d_l1,
+            "d_l2": d_l2,
+            "d_lf1": d_lf1,
+            "d_front": d_front,
+            "d_rf1": d_rf1,
+            "d_r1": d_r1,
+            "d_r2": d_r2,
+            "p_l1": prox(d_l1),
+            "p_l2": prox(d_l2),
+            "p_lf1": prox(d_lf1),
+            "p_f": prox(d_front),
+            "p_rf1": prox(d_rf1),
+            "p_r1": prox(d_r1),
+            "p_r2": prox(d_r2),
+            "u_g": float("nan"),
+            "u_d": float("nan"),
+        }
+
+    def calculer_commande(self, tableau_lidar_filtre):
+        """Calcule la commande finale [v_cmd, angle_cmd] a partir d'un scan filtre."""
+        try:
+            v_raw, angle_raw, details = calculer_commande_auto(
+                tableau_lidar_filtre,
+                L_entraxe=self.L_entraxe,
+                W_empattement=self.W_empattement,
+                maxangle_degre=self.maxangle_degre,
+                dmax=self.dmax,
+                v_min=self.v_min,
+                v_max=self.v_max,
+                debug=False,
+                retour_detail=True,
+            )
+        except TypeError:
+            v_raw, angle_raw = calculer_commande_auto(
+                tableau_lidar_filtre,
+                L_entraxe=self.L_entraxe,
+                W_empattement=self.W_empattement,
+                maxangle_degre=self.maxangle_degre,
+                dmax=self.dmax,
+                v_min=self.v_min,
+                v_max=self.v_max,
+                debug=False,
+            )
+            details = self._details_depuis_scan(tableau_lidar_filtre)
+            self._compat_signature_warned = True
+
+        d_front = float(details["d_front"])
+        d_rear = self._distance_arriere_lidar(tableau_lidar_filtre)
+
+        cmd_v_out = 0.0
+        cmd_angle_out = 0.0
+        raison_secu = "n/a"
+        d_front_sec = None
+        v_cible = 0.0
+
+        if self.etat == self.NAVIGATION:
+            v_raw = max(self.v_min, min(self.v_max, float(v_raw)))
+
+            d_front_sec = self._distance_front_securite(tableau_lidar_filtre)
+            v_cible = float(v_raw)
+            raison_secu = "normal"
+
+            if d_front_sec is None:
+                v_cible = min(v_cible, self.securite_vitesse_incertaine)
+                raison_secu = "front_incertain"
+            else:
+                if d_front_sec <= self.securite_front_stop_mm:
+                    v_cible = 0.0
+                    raison_secu = "stop_front"
+                elif d_front_sec < self.securite_front_ralenti_mm:
+                    ratio = (d_front_sec - self.securite_front_stop_mm) / max(
+                        1.0,
+                        self.securite_front_ralenti_mm - self.securite_front_stop_mm,
+                    )
+                    v_lim = max(0.0, min(1.0, ratio)) * self.v_max
+                    v_cible = min(v_cible, v_lim)
+                    raison_secu = "ralenti_front"
+
+            v_cible = max(self.v_min, min(self.v_max, v_cible))
+
+            self.v_cmd_filtre = (1.0 - self.filtre_alpha_vitesse) * self.v_cmd_filtre + self.filtre_alpha_vitesse * v_cible
+            self.angle_cmd_filtre = (1.0 - self.filtre_alpha_angle) * self.angle_cmd_filtre + self.filtre_alpha_angle * float(angle_raw)
+
+            if d_front_sec is not None and d_front_sec <= self.securite_front_stop_mm:
+                self.v_cmd_filtre = 0.0
+                self.angle_cmd_filtre = (1.0 - self.filtre_alpha_angle) * self.angle_cmd_filtre
+
+            self.v_cmd_filtre = max(self.v_min, min(self.v_max, self.v_cmd_filtre))
+
+            front_blocage = d_front_sec if d_front_sec is not None else d_front
+            if front_blocage <= self.seuil_front_blocage_mm:
+                self.etat = self.BLOCAGE
+                self.sous_etat = self.BACKWARD
+                self.flag_turn_right = False
+                self.action_counter = 0
+                cmd_v_out = 0.0
+                cmd_angle_out = 0.0
+            else:
+                cmd_v_out = float(self.v_cmd_filtre)
+                cmd_angle_out = float(self.angle_cmd_filtre)
+
+        else:
+            raison_secu = "etat_blocage"
+            d_front_sec = d_front
+
+            if self.sous_etat == self.BACKWARD:
+                if self.action_counter >= self.action_steps or d_rear <= self.seuil_arriere_degagement_mm:
+                    cmd_v_out = 0.0
+                    cmd_angle_out = 0.0
+                    self.action_counter = 0
+                    if self.flag_turn_right:
+                        self.sous_etat = self.TURN_RIGHT
+                    else:
+                        self.sous_etat = self.TURN_LEFT
+                else:
+                    cmd_angle_out = 0.0
+                    cmd_v_out = -self.vitesse_blocage_m_s
+                    self.action_counter += 1
+
+            elif self.sous_etat == self.TURN_LEFT:
+                if self.action_counter >= self.action_steps:
+                    cmd_v_out = 0.0
+                    cmd_angle_out = 0.0
+                    self.action_counter = 0
+                    if d_front > self.seuil_front_degagement_mm:
+                        self.sous_etat = self.CAMERA_CHECKING
+                    else:
+                        self.sous_etat = self.BACKWARD
+                else:
+                    cmd_angle_out = self.angle_recul_fixe_deg
+                    cmd_v_out = -self.vitesse_blocage_m_s
+                    self.action_counter += 1
+
+            elif self.sous_etat == self.TURN_RIGHT:
+                if self.action_counter >= self.action_steps:
+                    cmd_v_out = 0.0
+                    cmd_angle_out = 0.0
+                    self.action_counter = 0
+                    if d_front > self.seuil_front_degagement_mm:
+                        self.sous_etat = self.CAMERA_CHECKING
+                    else:
+                        self.sous_etat = self.BACKWARD
+                else:
+                    cmd_angle_out = -self.angle_recul_fixe_deg
+                    cmd_v_out = -self.vitesse_blocage_m_s
+                    self.action_counter += 1
+
+            elif self.sous_etat == self.CAMERA_CHECKING:
+                cmd_v_out = 0.0
+                cmd_angle_out = 0.0
+                self.action_counter = 0
+                if self.camera_valide_fn():
+                    self.etat = self.NAVIGATION
+                    self.sous_etat = self.BACKWARD
+                    self.flag_turn_right = False
+                    self.v_cmd_filtre = 0.0
+                    self.angle_cmd_filtre = 0.0
+                else:
+                    self.etat = self.BLOCAGE
+                    self.sous_etat = self.BACKWARD
+                    self.flag_turn_right = True
+
+            else:
+                cmd_v_out = 0.0
+                cmd_angle_out = 0.0
+                self.sous_etat = self.BACKWARD
+                self.action_counter = 0
+
+        self.last_debug = {
+            "etat": self.etat,
+            "sous_etat": self.sous_etat if self.etat == self.BLOCAGE else "-",
+            "details": details,
+            "d_front": float(d_front),
+            "d_rear": float(d_rear),
+            "v_raw": float(v_raw),
+            "angle_raw": float(angle_raw),
+            "d_front_sec": None if d_front_sec is None else float(d_front_sec),
+            "v_cible": float(v_cible),
+            "raison_secu": raison_secu,
+            "v_out": float(cmd_v_out),
+            "angle_out": float(cmd_angle_out),
+            "compat_signature_warned": bool(self._compat_signature_warned),
+        }
+
+        return float(cmd_v_out), float(cmd_angle_out)

@@ -126,11 +126,11 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
     """
 
     # Angles des points pertinents
-    angle_l1    =  63
-    angle_l2    =  73
+    angle_l1    =  60
+    angle_l2    =  70
     angle_front =   0
-    angle_r1    = -63
-    angle_r2    = -73
+    angle_r1    = -60
+    angle_r2    = -70
 
     # 1) Lecture des 5 points exacts
     d_l1 = lire_point_lidar(tableau_lidar_filtre, angle_l1, fenetre_deg=4, min_points=2)

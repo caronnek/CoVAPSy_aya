@@ -59,6 +59,8 @@ def set_direction_degre(angle_degre):
 
     angle_rad = -angle_degre * np.pi / 180.0
     driver.setSteeringAngle(angle_rad)
+
+
     
 # =========================
 # Fonctions d'execution pour Weebots
@@ -88,7 +90,17 @@ def main():
     lidar.enable(sensorTimeStep)
     lidar.enablePointCloud()
     tableau_lidar_mm = [0] * 360
-    
+
+    # =========================
+    # Initialisation du Sonar arrière
+    # =========================
+    sonar = driver.getDevice("us_rear")
+    if sonar is None:
+        print("Sonar non trouvé : us_rear")
+    else:
+        sonar.enable(sensorTimeStep)
+        print("Sonar trouvé :", sonar.getName())
+        
     # =========================
     # Initialisation clavier
     # =========================
@@ -195,6 +207,7 @@ def main():
             L_entraxe=config.L_ENTRAXE_M,
             W_empattement=config.W_EMPATTEMENT_M,
             maxangle_degre=config.ANGLE_DEGRE_MAX,
+            d_rear=(sonar.getValue() if sonar else 9999.0), 
             dmax=config.LIDAR_DMAX_MM,
             v_min=config.VITESSE_AUTO_MIN_M_S,
             v_max=config.VITESSE_AUTO_MAX_M_S,

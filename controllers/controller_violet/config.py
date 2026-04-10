@@ -63,7 +63,7 @@ CAMERA_CONFIRM_STEPS         = 3       # nb de validations consecutives avant re
 # ============================================================
 # SECURITE ANTI-COLLISION (front)
 # ============================================================
-SECURITE_FRONT_STOP_MM       = 200.0   # stop immediat si obstacle frontal proche
+SECURITE_FRONT_STOP_MM       = 450.0   # stop immediat si obstacle frontal proche
 SECURITE_FRONT_RALENTI_MM    = 500.0  # reduction progressive de vitesse sous ce seuil
 SECURITE_FRONT_FENETRE_DEG   = 15      # fenetre angulaire frontale pour la decision de securite
 SECURITE_FRONT_MIN_POINTS    = 5       # nombre mini de points valides pour juger le front fiable
@@ -71,14 +71,14 @@ SECURITE_FRONT_MIN_POINTS    = 5       # nombre mini de points valides pour juge
 # ============================================================
 # MACHINE A ETATS NAVIGATION / BLOCAGE
 # ============================================================
-SEUIL_FRONT_BLOCAGE_MM       = 250.0   # passage en mode blocage si obstacle proche
+SEUIL_FRONT_BLOCAGE_MM       = 450.0   # passage en mode blocage si obstacle proche
 SEUIL_FRONT_DEGAGEMENT_MM    = 500.0  # seuil de front libre pour sortir des manoeuvres
 SEUIL_ARRIERE_DEGAGEMENT_MM  = 100.0   # stop recul si obstacle arriere proche
 SEUIL_BLOCAGE_PERSIST_STEPS  = 5       # nb d'echecs avant autoriser TURN_RIGHT
 ANGLE_RECUL_FIXE_DEG         = 15.0    # angle fixe pour manoeuvres gauche/droite
-VITESSE_BLOCAGE_M_S          = 0.5     # vitesse de manoeuvre en mode blocage
-BLOCAGE_ACTION_DURATION_S    = 1.0     # duree max d'une action BACKWARD/TURN
-LIDAR_REAR_WINDOW_DEG        = 15      # fenetre de mesure arriere autour de 180 deg
+VITESSE_BLOCAGE_M_S          = VITESSE_AUTO_MAX_M_S/2.0     # vitesse de manoeuvre en mode blocage
+BLOCAGE_ACTION_DURATION_S    = 0.5     # duree max d'une action BACKWARD/TURN
+LIDAR_REAR_WINDOW_DEG        = 10      # fenetre de mesure arriere autour de 180 deg
 LIDAR_REAR_MIN_POINTS        = 4       # nb mini de points valides pour juger l'arriere fiable
 
 # ============================================================

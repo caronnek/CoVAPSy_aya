@@ -314,9 +314,11 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
     # 4) Vecteur d'entree du reseau  [biais, p_l1, p_l2, p_f, p_r1, p_r2]
     x = np.array([1.0, p_l1, p_l2, p_f, p_r1, p_r2])
 
-    # 5) Reseau virtuel differentiel (version plus conservative)
-    w_g = np.array([ 1.2,  0.8,  0.8, -1.6, -0.6, -0.6])
-    w_d = np.array([ 1.2, -0.6, -0.6, -1.6,  0.8,  0.8])
+    # 5) Reseau virtuel differentiel
+    # Reglage moins conservateur: preserve la direction, mais freine moins
+    # quand le front est encore relativement degage.
+    w_g = np.array([ 1.35,  0.8,  0.8, -1.2, -0.6, -0.6])
+    w_d = np.array([ 1.35, -0.6, -0.6, -1.2,  0.8,  0.8])
 
     u_g = np.tanh(np.dot(x, w_g))
     u_d = np.tanh(np.dot(x, w_d))
@@ -335,6 +337,7 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
     # - avance issue du reseau
     # - reduction si desequilibre lateral important
     # - reduction si front proche
+
     v_norm = max(0.0, (u_g + u_d) / 2.0)
     lat_g = 0.5 * (p_l1 + p_l2)
     lat_d = 0.5 * (p_r1 + p_r2)
@@ -342,8 +345,8 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
     gain_front = max(0.0, f) ** 1.5
     gain_avance = v_norm ** 1.4
 
-    v_cmd = v_min + (v_max - v_min) * gain_avance * gain_equilibre * gain_front
-    v_cmd = float(np.clip(v_cmd, v_min, v_max))
+    # v_cmd = v_min + (v_max - v_min) * gain_avance * gain_equilibre * gain_front
+    # v_cmd = float(np.clip(v_cmd, v_min, v_max))
 
     if debug:
         # =========================
@@ -591,6 +594,7 @@ def calculer_commande_automate(
     L_entraxe,
     W_empattement,
     maxangle_degre,
+    d_rear,
     dmax=3000.0,
     v_min=0.4,
     v_max=1.2,
@@ -645,14 +649,6 @@ def calculer_commande_automate(
         dmax=dmax,
         min_points=sec_front_min_points,
     )
-    d_rear = distance_secteur_lidar(
-        tableau_lidar_filtre,
-        centre_deg=180,
-        demi_fenetre_deg=int(lidar_rear_window_deg),
-        dmax=float(dmax),
-        min_points=int(lidar_rear_min_points),
-        quantile=20,
-    )
 
     # Si aucune mesure frontale exploitable pendant un court instant,
     # conserve la derniere mesure valide pour eviter les oscillations.
@@ -677,7 +673,7 @@ def calculer_commande_automate(
     slow_mm = float(sec_front_ralenti_mm)
     if d_front is None:
         pass
-    elif d_front is not d_front <= stop_mm:
+    elif d_front <= stop_mm:
         v_safe = 0.0
     elif d_front < slow_mm:
         ratio = (d_front - stop_mm) / max(1.0, slow_mm - stop_mm)

@@ -176,6 +176,11 @@ def main():
         print("\n  Lidar connecté")
     except Exception as e:
         logger.error("Erreur critique : %s", e, exc_info=True)
+    
+    # =========================
+    # Initialisation du sonar arriere
+    # =========================
+    sonar = None
 
     # =========================
     # Initialisation clavier
@@ -252,6 +257,7 @@ def main():
                 L_entraxe=config.L_ENTRAXE_M,
                 W_empattement=config.W_EMPATTEMENT_M,
                 maxangle_degre=config.ANGLE_DEGRE_MAX,
+                d_rear=(sonar.getValue() if sonar else 9999.0),
                 dmax=config.LIDAR_DMAX_MM,
                 v_min=config.VITESSE_AUTO_MIN_M_S,
                 v_max=config.VITESSE_AUTO_MAX_M_S,

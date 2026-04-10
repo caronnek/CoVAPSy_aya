@@ -39,8 +39,8 @@ ANGLE_DEGRE_MAX  = 18   # angle max en degrés (vers la gauche)
 L_ENTRAXE_M            = 0.180  # voie du modele utilise par la conversion Ackermann
 W_EMPATTEMENT_M        = 0.250  # empattement du modele utilise par la conversion Ackermann
 LIDAR_DMAX_MM          = 3000.0 # distance max de normalisation lidar
-VITESSE_AUTO_MIN_M_S   = 0.1    # borne basse de la vitesse issue du reseau
-VITESSE_AUTO_MAX_M_S   = 2.0   # borne haute en conduite autonome reelle (augmenter progressivement)
+VITESSE_AUTO_MIN_M_S   = 0.4    # borne basse de la vitesse issue du reseau
+VITESSE_AUTO_MAX_M_S   = 1.2   # borne haute en conduite autonome reelle (augmenter progressivement)
 AUTO_DEBUG             = True   # active les prints debug de calculer_commande_auto
 
 BOUCLE_PERIODE_S       = 0.01   # période de la boucle de contrôle (10 ms)
@@ -63,21 +63,21 @@ CAMERA_CONFIRM_STEPS         = 3       # nb de validations consecutives avant re
 # ============================================================
 # SECURITE ANTI-COLLISION (front)
 # ============================================================
-SECURITE_FRONT_STOP_MM       = 450.0   # stop immediat si obstacle frontal proche
-SECURITE_FRONT_RALENTI_MM    = 500.0  # reduction progressive de vitesse sous ce seuil
-SECURITE_FRONT_FENETRE_DEG   = 15      # fenetre angulaire frontale pour la decision de securite
+SECURITE_FRONT_STOP_MM       = 400.0   # stop immediat si obstacle frontal proche
+SECURITE_FRONT_RALENTI_MM    = 410.0  # reduction progressive de vitesse sous ce seuil
+SECURITE_FRONT_FENETRE_DEG   = 4      # fenetre angulaire frontale pour la decision de securite
 SECURITE_FRONT_MIN_POINTS    = 5       # nombre mini de points valides pour juger le front fiable
 
 # ============================================================
 # MACHINE A ETATS NAVIGATION / BLOCAGE
 # ============================================================
-SEUIL_FRONT_BLOCAGE_MM       = 450.0   # passage en mode blocage si obstacle proche
-SEUIL_FRONT_DEGAGEMENT_MM    = 500.0  # seuil de front libre pour sortir des manoeuvres
+SEUIL_FRONT_BLOCAGE_MM       = SECURITE_FRONT_STOP_MM   # passage en mode blocage si obstacle proche
+SEUIL_FRONT_DEGAGEMENT_MM    = SECURITE_FRONT_RALENTI_MM   # seuil de front libre pour sortir des manoeuvres
 SEUIL_ARRIERE_DEGAGEMENT_MM  = 100.0   # stop recul si obstacle arriere proche
 SEUIL_BLOCAGE_PERSIST_STEPS  = 5       # nb d'echecs avant autoriser TURN_RIGHT
 ANGLE_RECUL_FIXE_DEG         = 15.0    # angle fixe pour manoeuvres gauche/droite
-VITESSE_BLOCAGE_M_S          = VITESSE_AUTO_MAX_M_S/2.0     # vitesse de manoeuvre en mode blocage
-BLOCAGE_ACTION_DURATION_S    = 0.5     # duree max d'une action BACKWARD/TURN
+VITESSE_BLOCAGE_M_S          = 0.7     # vitesse de manoeuvre en mode blocage
+BLOCAGE_ACTION_DURATION_S    = 0.3     # duree max d'une action BACKWARD/TURN
 LIDAR_REAR_WINDOW_DEG        = 10      # fenetre de mesure arriere autour de 180 deg
 LIDAR_REAR_MIN_POINTS        = 4       # nb mini de points valides pour juger l'arriere fiable
 
@@ -106,8 +106,3 @@ DEBUG_ACTIONNEURS      = True   # affiche v_cmd/angle_cmd et PWM appliques
 DEBUG_LIDAR_RAW        = True   # affiche un resume brut du scan lidar
 DEBUG_PRINT_PERIOD_S   = 0.5    # periode mini entre 2 prints debug
 
-# ============================================================
-# SÉQUENCE DE RECUL
-# ============================================================
-VITESSE_RECUL_M_S  = -0.5   # vitesse lors du recul — MODE TEST
-DUREE_RECUL_S      = 0.4    # durée du recul

@@ -315,10 +315,8 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
     x = np.array([1.0, p_l1, p_l2, p_f, p_r1, p_r2])
 
     # 5) Reseau virtuel differentiel
-    # Reglage moins conservateur: preserve la direction, mais freine moins
-    # quand le front est encore relativement degage.
-    w_g = np.array([ 1.35,  0.8,  0.8, -1.2, -0.6, -0.6])
-    w_d = np.array([ 1.35, -0.6, -0.6, -1.2,  0.8,  0.8])
+    w_g = np.array([ 1.2,  0.8,  0.8, -1.6, -0.6, -0.6])
+    w_d = np.array([ 1.2, -0.6, -0.6, -1.6,  0.8,  0.8])
 
     u_g = np.tanh(np.dot(x, w_g))
     u_d = np.tanh(np.dot(x, w_d))
@@ -345,8 +343,8 @@ def calculer_commande_auto(tableau_lidar_filtre, L_entraxe, W_empattement, maxan
     gain_front = max(0.0, f) ** 1.5
     gain_avance = v_norm ** 1.4
 
-    # v_cmd = v_min + (v_max - v_min) * gain_avance * gain_equilibre * gain_front
-    # v_cmd = float(np.clip(v_cmd, v_min, v_max))
+    v_cmd = v_min + (v_max - v_min) * gain_avance * gain_equilibre * gain_front
+    v_cmd = float(np.clip(v_cmd, v_min, v_max))
 
     if debug:
         # =========================
@@ -763,12 +761,12 @@ def calculer_commande_automate(
         1,
         int(float(blocage_action_duration_s) / max(1e-4, float(boucle_periode_s))),
     )
-    # Recul plus court pour eviter de partir trop loin avant la manoeuvre de rotation.
-    backward_steps = max(1, min(action_steps, int(0.35 / max(1e-4, float(boucle_periode_s)))))
+    # Le recul est pilote par la config via blocage_action_duration_s.
+    backward_steps = action_steps
 
-    # Vitesses de manoeuvre plafonnees pour stabiliser le comportement.
-    v_backward = min(abs(float(vitesse_blocage_m_s)), 0.30)
-    v_turn = min(abs(float(vitesse_blocage_m_s)), 0.25)
+    # Les vitesses de manoeuvre sont pilotees par la config via vitesse_blocage_m_s.
+    v_backward = abs(float(vitesse_blocage_m_s))
+    v_turn = abs(float(vitesse_blocage_m_s))
 
     v_out = 0.0
     angle_out = 0.0
